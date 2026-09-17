@@ -4,16 +4,20 @@ from typing import List, Dict, Any, Optional
 from backend.models.schemas import NormalizedSession, Finding, FindingEvidence
 from backend.services.rules.rules import PREDICATE_MAP
 
-RULES_JSON_PATH = os.path.join(
-    os.path.dirname(__file__), "..", "..", "..", "rules", "security_rules.json"
-)
+RULES_JSON_CANDIDATES = [
+    os.path.join(os.path.dirname(__file__), "..", "..", "..", "rules", "security_rules.json"),
+    os.path.join(os.path.dirname(__file__), "..", "..", "rules", "security_rules.json"),
+    os.path.join(os.path.dirname(__file__), "..", "rules", "security_rules.json"),
+]
 
 
 def load_rules_def() -> List[Dict[str, Any]]:
-    if not os.path.exists(RULES_JSON_PATH):
-        raise FileNotFoundError(f"Rules definition missing at {RULES_JSON_PATH}")
-    with open(RULES_JSON_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+    for path in RULES_JSON_CANDIDATES:
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+    raise FileNotFoundError(f"Rules definition missing in candidate paths: {RULES_JSON_CANDIDATES}")
+
 
 
 class RuleEngine:

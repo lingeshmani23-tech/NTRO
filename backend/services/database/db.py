@@ -3,7 +3,7 @@ import sqlite3
 import os
 from typing import Optional, List
 from backend.config import settings
-from backend.models.schemas import AnalysisResult, StatusResponse, StageProgress
+from backend.models.schemas import ComplianceResult
 
 
 def get_db_connection() -> sqlite3.Connection:
@@ -31,7 +31,7 @@ def init_db():
         conn.commit()
 
 
-def save_analysis(result: AnalysisResult):
+def save_analysis(result: ComplianceResult):
     init_db()
     with get_db_connection() as conn:
         conn.execute(
@@ -54,7 +54,7 @@ def save_analysis(result: AnalysisResult):
         conn.commit()
 
 
-def get_analysis(analysis_id: str) -> Optional[AnalysisResult]:
+def get_analysis(analysis_id: str) -> Optional[ComplianceResult]:
     init_db()
     with get_db_connection() as conn:
         row = conn.execute(
@@ -62,5 +62,5 @@ def get_analysis(analysis_id: str) -> Optional[AnalysisResult]:
         ).fetchone()
         if row:
             data = json.loads(row["result_json"])
-            return AnalysisResult(**data)
+            return ComplianceResult(**data)
     return None

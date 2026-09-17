@@ -1,0 +1,68 @@
+[
+  {
+    "id": "LM-001",
+    "title": "Maximum Retail Price (MRP) Declaration",
+    "field": "mrp",
+    "severity": "CRITICAL",
+    "condition_key": "check_mrp",
+    "description": "Declaration of Maximum Retail Price (MRP) with inclusive of all taxes notice.",
+    "impact": "Absence or improper declaration of MRP violates Section 18 of Legal Metrology Act, 2009.",
+    "recommendation": "Clearly print MRP in format 'MRP Rs. XX.XX (incl. of all taxes)' on the principal display panel.",
+    "reference": "Legal Metrology (Packaged Commodities) Rules, 2011 Rule 6(1)(e)"
+  },
+  {
+    "id": "LM-002",
+    "title": "Net Quantity Declaration",
+    "field": "net_quantity",
+    "severity": "CRITICAL",
+    "condition_key": "check_net_quantity",
+    "description": "Declaration of Net Quantity in standard units of weight, volume, or count.",
+    "impact": "Missing or non-standard net quantity unit prevents consumers from determining exact volume/weight.",
+    "recommendation": "Declare net quantity using standard units (g, kg, ml, L, N, or pcs) with minimum prescribed font size.",
+    "reference": "Legal Metrology (Packaged Commodities) Rules, 2011 Rule 6(1)(b)"
+  },
+  {
+    "id": "LM-003",
+    "title": "Manufacturer / Packer Details",
+    "field": "manufacturer_details",
+    "severity": "CRITICAL",
+    "condition_key": "check_manufacturer_details",
+    "description": "Name and complete registered address of the manufacturer, packer, or importer.",
+    "impact": "Incomplete address or missing manufacturer name prevents consumer accountability and regulatory verification.",
+    "recommendation": "Provide full name and complete address including city, state, and pin code.",
+    "reference": "Legal Metrology (Packaged Commodities) Rules, 2011 Rule 6(1)(a)"
+  },
+  {
+    "id": "LM-004",
+    "title": "Date of Manufacture / Packing",
+    "field": "packing_date",
+    "severity": "HIGH",
+    "condition_key": "check_packing_date",
+    "description": "Month and Year of manufacture, packing, or import (MM/YYYY).",
+    "impact": "Missing packing date leaves consumers unaware of product freshness and shelf-life compliance.",
+    "recommendation": "Print Month and Year of manufacture/packing clearly (e.g. 'Mfg Date: 05/2026' or 'Packed: May 2026').",
+    "reference": "Legal Metrology (Packaged Commodities) Rules, 2011 Rule 6(1)(d)"
+  },
+  {
+    "id": "LM-005",
+    "title": "Consumer Care Details",
+    "field": "consumer_care_details",
+    "severity": "HIGH",
+    "condition_key": "check_consumer_care_details",
+    "description": "Name/designation, address, telephone number, and email of consumer grievance officer.",
+    "impact": "Absence of helpline or email violates mandatory consumer rights and grievance mechanism rules.",
+    "recommendation": "Include Consumer Care helpline number, email ID, and contact address on package.",
+    "reference": "Legal Metrology (Packaged Commodities) Rules, 2011 Rule 6(2)"
+  },
+  {
+    "id": "LM-006",
+    "title": "Country of Origin Declaration",
+    "field": "country_of_origin",
+    "severity": "MEDIUM",
+    "condition_key": "check_country_of_origin",
+    "description": "Declaration of Country of Origin for imported and domestic packaged commodities.",
+    "impact": "Omission of country of origin violates foreign trade and packaged commodity disclosure regulations.",
+    "recommendation": "Print 'Country of Origin: India' or 'Made in [Country]' on the package.",
+    "reference": "Legal Metrology (Packaged Commodities) Amendment Rules, 2017 Rule 6(1)(n)"
+  }
+]

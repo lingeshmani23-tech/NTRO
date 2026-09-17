@@ -1,407 +1,318 @@
-import React from 'react';
-import {
-  ShieldAlert,
-  ShieldCheck,
-  FileText,
-  Lock,
-  Unlock,
-  AlertOctagon,
-  TrendingDown,
-  Layers,
-  Activity,
-  CheckCircle2,
-} from 'lucide-react';
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Cell,
-  PieChart,
-  Pie,
-} from 'recharts';
-import type { AnalysisResult } from '../types/api';
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ShieldCheck, CheckCircle2, AlertTriangle, AlertCircle, FileText, Download, ArrowRight, RefreshCw } from 'lucide-react';
+import { fetchAnalysisResult, getReportDownloadUrl } from '../services/api';
+import type { ComplianceResult, ComplianceCheck } from '../types/api';
 
-interface OverviewPageProps {
-  analysis: AnalysisResult;
-}
+export const OverviewPage: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
 
-export const OverviewPage: React.FC<OverviewPageProps> = ({ analysis }) => {
-  const { score, totals, protocol_stats, sessions, findings } = analysis;
+  const [data, setData] = useState<ComplianceResult | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [filterSeverity, setFilterSeverity] = useState<string>('ALL');
 
-  // Rating color helper
-  const getRatingColor = (rating: str) => {
-    switch (rating) {
-      case 'SECURE':
-        return 'text-secure border-secure/40 bg-secure/10';
-      case 'LOW RISK':
-        return 'text-slate-300 border-slate-500/40 bg-slate-500/10';
-      case 'MEDIUM RISK':
-        return 'text-warning border-warning/40 bg-warning/10';
-      case 'HIGH RISK':
-        return 'text-high border-high/40 bg-high/10';
-      case 'CRITICAL RISK':
-      default:
-        return 'text-critical border-critical/40 bg-critical/10';
-    }
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    fetchAnalysisResult(id)
+      .then((res) => {
+        setData(res);
+        setError(null);
+      })
+      .catch((err) => {
+        setError('Failed to load compliance audit results.');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] bg-slate-950 flex items-center justify-center text-slate-400 text-sm">
+        Loading Legal Metrology Dashboard...
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] bg-slate-950 flex flex-col items-center justify-center p-4 text-center">
+        <AlertCircle className="w-12 h-12 text-red-400 mb-3" />
+        <h3 className="text-lg font-bold text-white mb-1">Result Not Found</h3>
+        <p className="text-xs text-slate-400 mb-4">{error || 'No inspection data found.'}</p>
+        <button
+          onClick={() => navigate('/')}
+          className="px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-500"
+        >
+          Back to Upload
+        </button>
+      </div>
+    );
+  }
+
+  const { extracted_data: ext, checks, score, ai_assessment, file } = data;
+
+  const filteredChecks = filterSeverity === 'ALL'
+    ? checks
+    : checks.filter((c) => c.severity === filterSeverity || c.status === filterSeverity);
+
+  const getScoreColor = (val: number) => {
+    if (val >= 90) return 'text-emerald-400 border-emerald-500/40 bg-emerald-500/10';
+    if (val >= 60) return 'text-amber-400 border-amber-500/40 bg-amber-500/10';
+    return 'text-red-400 border-red-500/40 bg-red-500/10';
   };
 
-  // Severity counts
-  const critCount = findings.filter((f) => f.severity === 'CRITICAL').length;
-  const highCount = findings.filter((f) => f.severity === 'HIGH').length;
-  const medCount = findings.filter((f) => f.severity === 'MEDIUM').length;
-  const lowCount = findings.filter((f) => f.severity === 'LOW').length;
-  const infoCount = findings.filter((f) => f.severity === 'INFO').length;
-
-  // 1. Protocol Chart Data
-  const protoData = [
-    { name: 'SMTP', count: protocol_stats['SMTP'] || 0 },
-    { name: 'IMAP', count: protocol_stats['IMAP'] || 0 },
-    { name: 'POP3', count: protocol_stats['POP3'] || 0 },
-  ];
-
-  // 2. TLS Version Chart Data
-  const tlsCounts: Record<string, number> = {};
-  sessions.forEach((s) => {
-    const ver = s.tls_version || 'Plaintext';
-    tlsCounts[ver] = (tlsCounts[ver] || 0) + 1;
-  });
-  const tlsData = Object.entries(tlsCounts).map(([name, count]) => ({ name, count }));
-
-  // 3. Cipher Suite Chart Data
-  const cipherCounts: Record<string, number> = {};
-  sessions.forEach((s) => {
-    if (s.encryption) {
-      const suite = s.cipher_suite || s.cipher_hex || 'Unknown Cipher';
-      // Truncate long cipher names for bar display
-      const shortName = suite.length > 22 ? suite.substring(0, 20) + '...' : suite;
-      cipherCounts[shortName] = (cipherCounts[shortName] || 0) + 1;
+  const getStatusBadge = (status: string) => {
+    if (status === 'PASS') {
+      return (
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1">
+          <CheckCircle2 className="w-3 h-3" />
+          <span>PASS</span>
+        </span>
+      );
     }
-  });
-  const cipherData = Object.entries(cipherCounts).map(([name, count]) => ({ name, count }));
-
-  // 4. Certificate Status Donut Data
-  let certValid = 0;
-  let certExpired = 0;
-  let certWeakKey = 0;
-  let certUnknown = 0;
-
-  sessions.forEach((s) => {
-    if (s.certificate && s.certificate.present) {
-      if (s.certificate.expired) certExpired++;
-      else if (s.certificate.key_size && s.certificate.key_size < 2048) certWeakKey++;
-      else certValid++;
-    } else if (s.encryption) {
-      certUnknown++;
+    if (status === 'WARNING') {
+      return (
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center space-x-1">
+          <AlertTriangle className="w-3 h-3" />
+          <span>WARNING</span>
+        </span>
+      );
     }
-  });
-
-  const certData = [
-    { name: 'Valid Cert', value: certValid, color: '#16A34A' },
-    { name: 'Expired Cert', value: certExpired, color: '#DC2626' },
-    { name: 'Weak RSA Key', value: certWeakKey, color: '#F59E0B' },
-    { name: 'Unknown Cert', value: certUnknown, color: '#64748B' },
-  ].filter((d) => d.value > 0);
+    return (
+      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30 flex items-center space-x-1">
+        <AlertCircle className="w-3 h-3" />
+        <span>FAIL</span>
+      </span>
+    );
+  };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Top Banner: Score & Rating + Ledger */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Dominant Score Card */}
-        <div className="lg:col-span-5 bg-ink-soft border border-line rounded-xl p-6 shadow-md flex flex-col items-center justify-center text-center relative overflow-hidden">
-          <div className="text-xs font-bold text-slate-400 font-mono uppercase tracking-widest mb-4">
-            Security Risk Assessment Score
-          </div>
+    <div className="min-h-[calc(100vh-4rem)] bg-slate-950 text-slate-100 p-4 md:p-8 space-y-8">
+      <div className="max-w-7xl mx-auto space-y-8">
 
-          {/* Large Radial Score Display */}
-          <div className="relative w-44 h-44 flex items-center justify-center mb-4">
-            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="42" stroke="#1F2A3D" strokeWidth="8" fill="transparent" />
-              <circle
-                cx="50"
-                cy="50"
-                r="42"
-                stroke={score.score >= 75 ? '#16A34A' : score.score >= 50 ? '#F59E0B' : '#EA580C'}
-                strokeWidth="8"
-                fill="transparent"
-                strokeDasharray="263.89"
-                strokeDashoffset={263.89 * (1 - score.score / 100)}
-                strokeLinecap="round"
-                className="transition-all duration-1000 ease-out"
-              />
-            </svg>
-            <div className="absolute flex flex-col items-center">
-              <span className="text-5xl font-black text-slate-100 font-mono tracking-tight">
-                {score.score}
-              </span>
-              <span className="text-xs font-mono text-slate-400 font-semibold">OUT OF 100</span>
-            </div>
-          </div>
-
-          {/* Rating Badge */}
-          <div
-            className={`px-4 py-1.5 rounded-full border text-sm font-bold font-mono tracking-wider mb-2 ${getRatingColor(
-              score.rating
-            )}`}
-          >
-            {score.rating}
-          </div>
-          <p className="text-xs text-slate-400 font-mono">
-            Total Penalty Deductions: -{score.total_penalty} points
-          </p>
-        </div>
-
-        {/* Rationale & Deductions Ledger Card */}
-        <div className="lg:col-span-7 bg-ink-soft border border-line rounded-xl p-6 shadow-md flex flex-col justify-between">
+        {/* Top Header Banner */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
           <div>
-            <h3 className="text-xs font-bold text-slate-400 font-mono uppercase tracking-wider mb-2 flex items-center space-x-2">
-              <TrendingDown className="w-4 h-4 text-primary" />
-              <span>Visible Penalty Rationale & Ledger</span>
-            </h3>
-
-            <div className="bg-ink border border-line p-3 rounded-lg mb-4 text-xs font-mono text-slate-300">
-              <span className="text-slate-400">Calculated Rationale: </span>
-              <span className="font-bold text-primary">
-                100{' '}
-                {score.ledger.map((item) => `- ${item.penalty} (${item.rule_id})`).join(' ')} ={' '}
-                {score.score}
+            <div className="flex items-center space-x-3 mb-1">
+              <h1 className="text-2xl font-bold text-white">Compliance Audit Dashboard</h1>
+              <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${getScoreColor(score.score)}`}>
+                {score.rating}
               </span>
             </div>
+            <p className="text-xs text-slate-400">
+              Package Image: <span className="text-slate-200">{file.name}</span> • ID: <span className="text-slate-200">{data.analysis_id.slice(0, 8)}</span> • Date: {data.created_at}
+            </p>
+          </div>
 
-            <div className="overflow-y-auto max-h-48 border border-line/60 rounded-lg">
-              <table className="w-full text-left text-xs font-mono">
-                <thead className="bg-slate-900/90 text-slate-400 font-bold border-b border-line">
-                  <tr>
-                    <th className="p-2.5">Rule ID</th>
-                    <th className="p-2.5">Severity</th>
-                    <th className="p-2.5 text-right">Deduction</th>
-                    <th className="p-2.5 text-right">Occurrences</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-line/40">
-                  {score.ledger.map((item) => (
-                    <tr key={item.rule_id} className="hover:bg-slate-800/40">
-                      <td className="p-2.5 font-bold text-primary">{item.rule_id}</td>
-                      <td className="p-2.5">
-                        <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                            item.severity === 'CRITICAL'
-                              ? 'bg-critical/20 text-critical'
-                              : item.severity === 'HIGH'
-                              ? 'bg-high/20 text-high'
-                              : item.severity === 'MEDIUM'
-                              ? 'bg-warning/20 text-warning'
-                              : 'bg-info/20 text-info'
-                          }`}
-                        >
-                          {item.severity}
-                        </span>
-                      </td>
-                      <td className="p-2.5 text-right text-critical font-bold">
-                        {item.penalty > 0 ? `-${item.penalty} pts` : '0 pts'}
-                      </td>
-                      <td className="p-2.5 text-right text-slate-300">{item.occurrences}</td>
-                    </tr>
+          <div className="flex items-center space-x-3">
+            <a
+              href={getReportDownloadUrl(data.analysis_id, 'pdf')}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center space-x-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-blue-600/20 transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              <span>Download Official PDF Report</span>
+            </a>
+          </div>
+        </div>
+
+        {/* Score & Summary Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+          {/* Compliance Score Gauge Card */}
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col justify-between items-center text-center shadow-xl">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Overall Compliance Score</h3>
+            
+            <div className="my-6 relative flex items-center justify-center">
+              <div className={`w-32 h-32 rounded-full border-4 flex flex-col items-center justify-center ${getScoreColor(score.score)}`}>
+                <span className="text-4xl font-extrabold">{score.score}</span>
+                <span className="text-[10px] font-semibold text-slate-400 uppercase">out of 100</span>
+              </div>
+            </div>
+
+            <div className="w-full text-xs text-slate-400 bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+              Rule 6 Mandatory Declarations Score
+            </div>
+          </div>
+
+          {/* Executive Summary Card */}
+          <div className="md:col-span-2 bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col justify-between shadow-xl space-y-4">
+            <div>
+              <h3 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">Executive AI Assessment Summary</h3>
+              <p className="text-sm text-slate-200 leading-relaxed mb-4">
+                {ai_assessment.executive_summary}
+              </p>
+              <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800 text-xs text-slate-400">
+                <strong className="text-slate-300">Why It Matters:</strong> {ai_assessment.why_it_matters}
+              </div>
+            </div>
+
+            {ai_assessment.top_priorities.length > 0 && (
+              <div>
+                <h4 className="text-xs font-bold text-slate-300 mb-2">Top Priorities for Compliance:</h4>
+                <ul className="text-xs text-slate-300 space-y-1">
+                  {ai_assessment.top_priorities.map((pri, idx) => (
+                    <li key={idx} className="flex items-start space-x-2">
+                      <span className="text-blue-400 font-bold">•</span>
+                      <span>{pri}</span>
+                    </li>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Severity Counters Bar */}
-          <div className="grid grid-cols-5 gap-2 mt-4 pt-4 border-t border-line/60 text-center font-mono">
-            <div className="bg-critical/10 border border-critical/30 p-2 rounded-lg">
-              <div className="text-[10px] text-critical font-bold">CRITICAL</div>
-              <div className="text-lg font-black text-slate-100">{critCount}</div>
-            </div>
-            <div className="bg-high/10 border border-high/30 p-2 rounded-lg">
-              <div className="text-[10px] text-high font-bold">HIGH</div>
-              <div className="text-lg font-black text-slate-100">{highCount}</div>
-            </div>
-            <div className="bg-warning/10 border border-warning/30 p-2 rounded-lg">
-              <div className="text-[10px] text-warning font-bold">MEDIUM</div>
-              <div className="text-lg font-black text-slate-100">{medCount}</div>
-            </div>
-            <div className="bg-slate-800/60 border border-slate-700 p-2 rounded-lg">
-              <div className="text-[10px] text-slate-400 font-bold">LOW</div>
-              <div className="text-lg font-black text-slate-100">{lowCount}</div>
-            </div>
-            <div className="bg-info/10 border border-info/30 p-2 rounded-lg">
-              <div className="text-[10px] text-info font-bold">INFO</div>
-              <div className="text-lg font-black text-slate-100">{infoCount}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Six Stat Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 font-mono">
-        <div className="bg-ink-soft border border-line p-4 rounded-xl">
-          <div className="text-[11px] text-slate-400 mb-1 flex items-center justify-between">
-            <span>Total Packets</span>
-            <FileText className="w-3.5 h-3.5 text-primary" />
-          </div>
-          <div className="text-xl font-bold text-slate-100">{totals.packets.toLocaleString()}</div>
-        </div>
-
-        <div className="bg-ink-soft border border-line p-4 rounded-xl">
-          <div className="text-[11px] text-slate-400 mb-1 flex items-center justify-between">
-            <span>Total Sessions</span>
-            <Layers className="w-3.5 h-3.5 text-primary" />
-          </div>
-          <div className="text-xl font-bold text-slate-100">{totals.sessions}</div>
-        </div>
-
-        <div className="bg-ink-soft border border-line p-4 rounded-xl">
-          <div className="text-[11px] text-slate-400 mb-1 flex items-center justify-between">
-            <span>Email Sessions</span>
-            <Activity className="w-3.5 h-3.5 text-primary" />
-          </div>
-          <div className="text-xl font-bold text-slate-100">{totals.email_sessions}</div>
-        </div>
-
-        <div className="bg-ink-soft border border-line p-4 rounded-xl">
-          <div className="text-[11px] text-slate-400 mb-1 flex items-center justify-between">
-            <span>Encrypted TLS</span>
-            <Lock className="w-3.5 h-3.5 text-secure" />
-          </div>
-          <div className="text-xl font-bold text-secure">{totals.encrypted_sessions}</div>
-        </div>
-
-        <div className="bg-ink-soft border border-line p-4 rounded-xl">
-          <div className="text-[11px] text-slate-400 mb-1 flex items-center justify-between">
-            <span>Plaintext Email</span>
-            <Unlock className="w-3.5 h-3.5 text-critical" />
-          </div>
-          <div className="text-xl font-bold text-critical">{totals.plaintext_sessions}</div>
-        </div>
-
-        <div className="bg-ink-soft border border-line p-4 rounded-xl">
-          <div className="text-[11px] text-slate-400 mb-1 flex items-center justify-between">
-            <span>Total Findings</span>
-            <ShieldAlert className="w-3.5 h-3.5 text-high" />
-          </div>
-          <div className="text-xl font-bold text-slate-100">{totals.findings}</div>
-        </div>
-      </div>
-
-      {/* Four Recharts Panels */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Panel 1: Protocol Distribution */}
-        <div className="bg-ink-soft border border-line rounded-xl p-5 shadow-md">
-          <h4 className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider mb-4">
-            Protocol Distribution (Bar)
-          </h4>
-          <div className="h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={protoData}>
-                <XAxis dataKey="name" stroke="#64748B" tick={{ fontSize: 12, fill: '#94A3B8' }} />
-                <YAxis stroke="#64748B" tick={{ fontSize: 12, fill: '#94A3B8' }} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#0B1220', borderColor: '#1F2A3D', color: '#F8FAFC' }}
-                />
-                <Bar dataKey="count" fill="#2563EB" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Panel 2: TLS Version Distribution */}
-        <div className="bg-ink-soft border border-line rounded-xl p-5 shadow-md">
-          <h4 className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider mb-4">
-            TLS Protocol Version Distribution
-          </h4>
-          <div className="h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={tlsData}>
-                <XAxis dataKey="name" stroke="#64748B" tick={{ fontSize: 12, fill: '#94A3B8' }} />
-                <YAxis stroke="#64748B" tick={{ fontSize: 12, fill: '#94A3B8' }} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#0B1220', borderColor: '#1F2A3D', color: '#F8FAFC' }}
-                />
-                <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                  {tlsData.map((entry, index) => {
-                    const isLegacy = entry.name.includes('1.0') || entry.name.includes('1.1') || entry.name.includes('Plaintext');
-                    return (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={isLegacy ? '#DC2626' : '#16A34A'}
-                      />
-                    );
-                  })}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Panel 3: Cipher Suite Distribution */}
-        <div className="bg-ink-soft border border-line rounded-xl p-5 shadow-md">
-          <h4 className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider mb-4">
-            Negotiated Cipher Suites
-          </h4>
-          <div className="h-56">
-            {cipherData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={cipherData} layout="vertical">
-                  <XAxis type="number" stroke="#64748B" tick={{ fontSize: 12, fill: '#94A3B8' }} />
-                  <YAxis
-                    dataKey="name"
-                    type="category"
-                    stroke="#64748B"
-                    tick={{ fontSize: 10, fill: '#94A3B8' }}
-                    width={140}
-                  />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#0B1220', borderColor: '#1F2A3D', color: '#F8FAFC' }}
-                  />
-                  <Bar dataKey="count" fill="#0EA5E9" radius={[0, 6, 6, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-xs font-mono text-slate-500">
-                No TLS cipher handshakes observed
+                </ul>
               </div>
             )}
           </div>
+
         </div>
 
-        {/* Panel 4: Certificate Status Donut */}
-        <div className="bg-ink-soft border border-line rounded-xl p-5 shadow-md">
-          <h4 className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider mb-4">
-            Certificate Posture Status
-          </h4>
-          <div className="h-56 flex items-center justify-center">
-            {certData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={certData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={4}
-                    dataKey="value"
-                  >
-                    {certData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#0B1220', borderColor: '#1F2A3D', color: '#F8FAFC' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-xs font-mono text-slate-500">
-                No certificate data present
+        {/* 6 Mandatory Declarations Cards Grid */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-white flex items-center space-x-2">
+              <ShieldCheck className="w-5 h-5 text-blue-400" />
+              <span>Extracted 6 Mandatory Declarations (Rule 6)</span>
+            </h2>
+            <span className="text-xs text-slate-400">Legal Metrology (Packaged Commodities) Rules, 2011</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+            {/* 1. MRP */}
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl space-y-2 shadow-md">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-400 uppercase">1. Maximum Retail Price (MRP)</span>
+                {getStatusBadge(ext.mrp && "tax" in ext.mrp.lower() ? "PASS" : (ext.mrp ? "WARNING" : "FAIL"))}
               </div>
-            )}
+              <p className="text-sm font-semibold text-white font-mono break-words">
+                {ext.mrp || <span className="text-red-400 italic">NOT DECLARED</span>}
+              </p>
+              <p className="text-[11px] text-slate-500">Must include inclusive of all taxes declaration.</p>
+            </div>
+
+            {/* 2. Net Quantity */}
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl space-y-2 shadow-md">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-400 uppercase">2. Net Quantity</span>
+                {getStatusBadge(ext.net_quantity ? "PASS" : "FAIL")}
+              </div>
+              <p className="text-sm font-semibold text-white font-mono break-words">
+                {ext.net_quantity || <span className="text-red-400 italic">NOT DECLARED</span>}
+              </p>
+              <p className="text-[11px] text-slate-500">Must use standard metric units (g, kg, ml, L, N).</p>
+            </div>
+
+            {/* 3. Manufacturer Details */}
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl space-y-2 shadow-md">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-400 uppercase">3. Manufacturer / Packer Details</span>
+                {getStatusBadge(ext.manufacturer_details && ext.manufacturer_details.length > 25 ? "PASS" : (ext.manufacturer_details ? "WARNING" : "FAIL"))}
+              </div>
+              <p className="text-xs font-semibold text-white break-words line-clamp-3">
+                {ext.manufacturer_details || <span className="text-red-400 italic">NOT DECLARED</span>}
+              </p>
+              <p className="text-[11px] text-slate-500">Must include complete address with city, state, PIN.</p>
+            </div>
+
+            {/* 4. Date of Mfg */}
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl space-y-2 shadow-md">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-400 uppercase">4. Date of Mfg / Packing</span>
+                {getStatusBadge(ext.packing_date ? "PASS" : "FAIL")}
+              </div>
+              <p className="text-sm font-semibold text-white font-mono break-words">
+                {ext.packing_date || <span className="text-red-400 italic">NOT DECLARED</span>}
+              </p>
+              <p className="text-[11px] text-slate-500">Month & Year of manufacture/packing (MM/YYYY).</p>
+            </div>
+
+            {/* 5. Consumer Care Details */}
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl space-y-2 shadow-md">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-400 uppercase">5. Consumer Care Details</span>
+                {getStatusBadge(ext.consumer_care_details ? "PASS" : "FAIL")}
+              </div>
+              <p className="text-xs font-semibold text-white break-words line-clamp-3">
+                {ext.consumer_care_details || <span className="text-red-400 italic">NOT DECLARED</span>}
+              </p>
+              <p className="text-[11px] text-slate-500">Must include helpline number, email, and contact address.</p>
+            </div>
+
+            {/* 6. Country of Origin */}
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl space-y-2 shadow-md">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-400 uppercase">6. Country of Origin</span>
+                {getStatusBadge(ext.country_of_origin ? "PASS" : "FAIL")}
+              </div>
+              <p className="text-sm font-semibold text-white font-mono break-words">
+                {ext.country_of_origin || <span className="text-red-400 italic">NOT DECLARED</span>}
+              </p>
+              <p className="text-[11px] text-slate-500">Mandatory origin statement for all packages.</p>
+            </div>
+
           </div>
         </div>
+
+        {/* Detailed Compliance Rule Inspection Table */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-xl">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-bold text-white">Rule Inspection Verification Log</h3>
+              <p className="text-xs text-slate-400">Detailed Legal Metrology Rule 6 Evaluation Results</p>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <span className="text-xs text-slate-400">Filter:</span>
+              {['ALL', 'CRITICAL', 'HIGH', 'WARNING', 'FAIL'].map((sev) => (
+                <button
+                  key={sev}
+                  onClick={() => setFilterSeverity(sev)}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
+                    filterSeverity === sev
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                  }`}
+                >
+                  {sev}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase bg-slate-950/40">
+                  <th className="py-3 px-4">Rule ID</th>
+                  <th className="py-3 px-4">Field</th>
+                  <th className="py-3 px-4">Title & Description</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4">Recommendation</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60">
+                {filteredChecks.map((check: ComplianceCheck) => (
+                  <tr key={check.rule_id} className="hover:bg-slate-950/40 transition-colors">
+                    <td className="py-3.5 px-4 font-mono font-bold text-blue-400">{check.rule_id}</td>
+                    <td className="py-3.5 px-4 font-medium text-slate-300">{check.field}</td>
+                    <td className="py-3.5 px-4 max-w-xs">
+                      <div className="font-semibold text-white mb-0.5">{check.title}</div>
+                      <p className="text-slate-400 text-[11px] leading-relaxed">{check.message}</p>
+                    </td>
+                    <td className="py-3.5 px-4">{getStatusBadge(check.status)}</td>
+                    <td className="py-3.5 px-4 max-w-xs text-slate-300">
+                      {check.recommendation}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
     </div>
   );

@@ -1,0 +1,152 @@
+[
+  {
+    "id": "TLS-001",
+    "title": "Legacy TLS 1.0 Negotiated",
+    "severity": "HIGH",
+    "condition_key": "tls_1_0_negotiated",
+    "description": "Session negotiated TLS 1.0 which is deprecated by RFC 8996 due to known cryptographic weaknesses.",
+    "impact": "Exposes traffic to eavesdropping and man-in-the-middle attacks via BEAST, POODLE, and fallback exploits.",
+    "recommendation": "Disable TLS 1.0 on mail server and client configurations. Enforce TLS 1.2 or TLS 1.3.",
+    "reference": "NIST SP 800-52r2 §3.1 / RFC 8996"
+  },
+  {
+    "id": "TLS-002",
+    "title": "Legacy TLS 1.1 Negotiated",
+    "severity": "HIGH",
+    "condition_key": "tls_1_1_negotiated",
+    "description": "Session negotiated TLS 1.1 which is deprecated by RFC 8996 and lacks modern cipher support.",
+    "impact": "Lacks support for modern authenticated encryption (AEAD) algorithms and weak key exchange.",
+    "recommendation": "Disable TLS 1.1 on mail server and client configurations. Require minimum TLS 1.2.",
+    "reference": "NIST SP 800-52r2 §3.1 / RFC 8996"
+  },
+  {
+    "id": "TLS-003",
+    "title": "Legacy CBC Cipher Suite Negotiated",
+    "severity": "HIGH",
+    "condition_key": "legacy_cbc_negotiated",
+    "description": "Session negotiated a legacy Cipher Block Chaining (CBC) cipher suite under encryption.",
+    "impact": "CBC mode ciphers in older TLS implementations are vulnerable to padding oracle attacks.",
+    "recommendation": "Migrate cipher suite selection to AEAD suites such as AES-GCM or ChaCha20-Poly1305.",
+    "reference": "NIST SP 800-52r2 §3.3.1"
+  },
+  {
+    "id": "TLS-004",
+    "title": "Weak Cipher Suite Negotiated",
+    "severity": "HIGH",
+    "condition_key": "weak_cipher_negotiated",
+    "description": "Session negotiated an inherently weak or broken cipher suite (NULL, EXPORT, RC4, DES, 3DES, MD5).",
+    "impact": "Allows trivial decryption or authentication bypass by active network attackers.",
+    "recommendation": "Remove weak ciphers from server cipher preference lists immediately.",
+    "reference": "RFC 7507 / NIST SP 800-52r2"
+  },
+  {
+    "id": "TLS-005",
+    "title": "Unencrypted Plaintext Email Session",
+    "severity": "CRITICAL",
+    "condition_key": "unencrypted_email_session",
+    "description": "Email session communicated over plaintext without TLS transport encryption.",
+    "impact": "Email headers, commands, authentication credentials, and body contents are exposed to passive wiretapping.",
+    "recommendation": "Enforce mandatory TLS/STARTTLS for all mail transport and access sessions.",
+    "reference": "RFC 8314 §3"
+  },
+  {
+    "id": "TLS-006",
+    "title": "STARTTLS Offered but Not Issued",
+    "severity": "HIGH",
+    "condition_key": "starttls_offered_not_issued",
+    "description": "Server advertised STARTTLS capability, but the client failed to issue STARTTLS and continued in plaintext.",
+    "impact": "Session fell back to unencrypted transport despite server support for encryption.",
+    "recommendation": "Configure mail client to enforce mandatory STARTTLS encryption (Opportunistic TLS upgrade).",
+    "reference": "RFC 3207 §2"
+  },
+  {
+    "id": "TLS-007",
+    "title": "STARTTLS Stripping or Downgrade Attack Detected",
+    "severity": "CRITICAL",
+    "condition_key": "starttls_downgrade_detected",
+    "description": "STARTTLS capability was stripped from server response or STARTTLS command failed with server error.",
+    "impact": "Indicates active MITM adversary tampering with mail session capabilities to force plaintext fallback.",
+    "recommendation": "Enable DANE (RFC 6698) or MTA-STS (RFC 8461) to enforce verified TLS connections.",
+    "reference": "RFC 8461 / MTA-STS"
+  },
+  {
+    "id": "CERT-001",
+    "title": "Expired X.509 Certificate",
+    "severity": "HIGH",
+    "condition_key": "cert_expired",
+    "description": "Server TLS certificate expired before the time of the capture.",
+    "impact": "Clients cannot establish trust in the server identity, exposing session to MITM impersonation.",
+    "recommendation": "Renew server certificate immediately using automated certificate management (e.g. ACME / Let's Encrypt).",
+    "reference": "RFC 5280 §4.1.2.5"
+  },
+  {
+    "id": "CERT-002",
+    "title": "Certificate Not Yet Valid",
+    "severity": "HIGH",
+    "condition_key": "cert_not_yet_valid",
+    "description": "Server certificate issue date (notBefore) is in the future relative to the capture start time.",
+    "impact": "Certificate is invalid, causing TLS handshake errors or untrusted connection warnings.",
+    "recommendation": "Verify system clock synchronization (NTP) on mail server and issue valid certificates.",
+    "reference": "RFC 5280 §4.1.2.5"
+  },
+  {
+    "id": "CERT-003",
+    "title": "Certificate Hostname Mismatch",
+    "severity": "HIGH",
+    "condition_key": "cert_hostname_mismatch",
+    "description": "Server certificate CN/SAN does not match the observed destination SNI or hostname.",
+    "impact": "Subject identity validation failed; connection cannot verify server authenticity.",
+    "recommendation": "Re-issue server certificate with proper Subject Alternative Names (SAN) matching mail server hostnames.",
+    "reference": "RFC 6125 §6"
+  },
+  {
+    "id": "CERT-004",
+    "title": "Weak Public Key Size (< 2048-bit RSA)",
+    "severity": "MEDIUM",
+    "condition_key": "cert_weak_key_size",
+    "description": "Server RSA certificate uses a key length under 2048 bits (e.g. 1024 bits).",
+    "impact": "RSA 1024-bit keys offer insufficient security margin against factorization by well-funded adversaries.",
+    "recommendation": "Re-key certificate with minimum RSA 2048-bit or ECDSA P-256 key.",
+    "reference": "NIST SP 800-57 Part 1 Rev 5"
+  },
+  {
+    "id": "CERT-005",
+    "title": "Weak Certificate Signature Algorithm",
+    "severity": "MEDIUM",
+    "condition_key": "cert_weak_signature_algorithm",
+    "description": "Certificate signed using deprecated cryptographic hash algorithm (MD5 or SHA-1).",
+    "impact": "Hash collision vulnerabilities allow attackers to forge valid-appearing certificates.",
+    "recommendation": "Re-issue certificate signed with SHA-256 or stronger digest algorithm.",
+    "reference": "RFC 6151 / NIST SP 800-131A"
+  },
+  {
+    "id": "AUTH-001",
+    "title": "Plaintext Credentials Exposed on Network",
+    "severity": "CRITICAL",
+    "condition_key": "auth_plaintext_exposed",
+    "description": "User authentication credentials (AUTH LOGIN, USER/PASS) transmitted outside TLS encryption.",
+    "impact": "Immediate exposure of username and cleartext password to network eavesdroppers.",
+    "recommendation": "Enforce TLS encryption prior to permitting authentication commands; disable plaintext AUTH methods on port 25/110/143.",
+    "reference": "RFC 8314 §4"
+  },
+  {
+    "id": "SEC-001",
+    "title": "Modern TLS Version Negotiated",
+    "severity": "INFO",
+    "condition_key": "tls_modern_negotiated",
+    "description": "Session established using modern TLS protocol (TLS 1.2 or TLS 1.3).",
+    "impact": "Provides essential transport layer confidentiality and data integrity.",
+    "recommendation": "Maintain minimum TLS version requirement at TLS 1.2.",
+    "reference": "NIST SP 800-52r2"
+  },
+  {
+    "id": "SEC-002",
+    "title": "Strong AEAD Cipher Suite with Forward Secrecy",
+    "severity": "INFO",
+    "condition_key": "strong_cipher_negotiated",
+    "description": "Session uses modern authenticated encryption (AEAD) with ephemeral key exchange (ECDHE/DHE).",
+    "impact": "Guarantees forward secrecy and authenticated encryption against eavesdropping.",
+    "recommendation": "Continue prioritizing AEAD ciphers in server preference order.",
+    "reference": "RFC 7525 §4.2"
+  }
+]

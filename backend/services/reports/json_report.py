@@ -1,9 +1,9 @@
 import json
-from backend.models.schemas import AnalysisResult
+from backend.models.schemas import ComplianceResult
 
 
-def generate_json_report(result: AnalysisResult) -> str:
+def generate_json_report(result: ComplianceResult) -> str:
     """
-    Exports full AnalysisResult object into pretty-printed JSON string.
+    Generates structured JSON report for Legal Metrology compliance inspection.
     """
     return json.dumps(result.model_dump(), indent=2, default=str)

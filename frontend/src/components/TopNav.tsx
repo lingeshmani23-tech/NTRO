@@ -1,115 +1,111 @@
 import React from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
-import { Shield, ShieldAlert, FileText, Database, Activity, Cpu, FileDown, Layers } from 'lucide-react';
-import type { AnalysisResult } from '../types/api';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { ShieldCheck, Upload, LayoutDashboard, FileText, RefreshCw, CheckCircle2 } from 'lucide-react';
 
 interface TopNavProps {
-  analysis?: AnalysisResult | null;
+  analysisId: string | null;
+  onReset: () => void;
 }
 
-export const TopNav: React.FC<TopNavProps> = ({ analysis }) => {
-  const location = useLocation();
-  const { id } = useParams<{ id: string }>();
+export const TopNav: React.FC<TopNavProps> = ({ analysisId, onReset }) => {
+  const navigate = useNavigate();
 
-  const isDemo = analysis?.data_source === 'synthetic';
-
-  const navItems = id
-    ? [
-        { label: 'Overview', path: `/analysis/${id}/overview`, icon: Activity },
-        { label: 'Sessions', path: `/analysis/${id}/sessions`, icon: Layers },
-        { label: 'Findings', path: `/analysis/${id}/findings`, icon: ShieldAlert },
-        { label: 'AI Analyst', path: `/analysis/${id}/ai`, icon: Cpu },
-        { label: 'Reports', path: `/analysis/${id}/reports`, icon: FileDown },
-      ]
-    : [];
+  const handleNewScan = () => {
+    onReset();
+    navigate('/');
+  };
 
   return (
-    <header className="bg-ink-soft border-b border-line sticky top-0 z-40 shadow-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Brand & Subtitle */}
-          <div className="flex items-center space-x-3">
-            <Link to="/" className="flex items-center space-x-2.5 group">
-              <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/40 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all">
-                <Shield className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex items-center space-x-2">
-                  <span className="font-bold text-lg tracking-wider text-slate-100 font-mono">
-                    SECUREMAILSCOPE
-                  </span>
-                  <span className="px-2 py-0.5 text-[10px] font-semibold bg-slate-800 text-primary border border-primary/30 rounded-md font-mono">
-                    SMTP • IMAP • POP3
-                  </span>
-                </div>
-                <span className="text-xs text-slate-400 block -mt-0.5">
-                  Passive Email Security Assessment
-                </span>
-              </div>
-            </Link>
+    <header className="sticky top-0 z-50 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 text-slate-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        
+        {/* Brand */}
+        <div className="flex items-center space-x-3 cursor-pointer" onClick={() => navigate('/')}>
+          <div className="bg-gradient-to-tr from-blue-600 to-indigo-500 p-2 rounded-xl text-white shadow-lg shadow-blue-500/20">
+            <ShieldCheck className="w-6 h-6" />
           </div>
-
-          {/* Analysis File Status & Badge */}
-          {analysis && (
-            <div className="hidden md:flex items-center space-x-3 bg-ink/60 border border-line px-3 py-1.5 rounded-lg text-xs font-mono">
-              <FileText className="w-3.5 h-3.5 text-slate-400" />
-              <span className="text-slate-200 font-medium truncate max-w-[180px]">
-                {analysis.file.name}
+          <div>
+            <div className="flex items-center space-x-2">
+              <span className="font-bold text-lg tracking-tight text-white">LEGAL METROLOGY</span>
+              <span className="text-xs bg-blue-500/20 text-blue-400 font-semibold px-2 py-0.5 rounded-full border border-blue-500/30">
+                SIH26034
               </span>
-              <span className="text-slate-500">•</span>
-              <span
-                className={`px-2 py-0.5 rounded text-[11px] font-bold ${
-                  analysis.status === 'completed'
-                    ? 'bg-secure/20 text-secure border border-secure/30'
-                    : 'bg-warning/20 text-warning border border-warning/30'
-                }`}
-              >
-                {analysis.status.toUpperCase()}
-              </span>
-
-              {isDemo && (
-                <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/40 rounded text-[10px] font-bold tracking-wider animate-pulse">
-                  DEMO DATA
-                </span>
-              )}
             </div>
-          )}
-
-          {/* New Analysis Button */}
-          <div className="flex items-center space-x-3">
-            <Link
-              to="/"
-              className="px-3 py-1.5 text-xs font-semibold bg-primary hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center space-x-1.5 shadow-sm"
-            >
-              <Database className="w-3.5 h-3.5" />
-              <span>New Analysis</span>
-            </Link>
+            <p className="text-xs text-slate-400 hidden sm:block">Packaged Commodities Compliance Audit</p>
           </div>
         </div>
 
-        {/* Sub-navigation tabs when analysis loaded */}
-        {navItems.length > 0 && (
-          <div className="flex items-center space-x-1 border-t border-line/60 pt-1 pb-1 overflow-x-auto">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.path;
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`px-3.5 py-1.5 rounded-md text-xs font-medium flex items-center space-x-2 transition-all whitespace-nowrap ${
-                    isActive
-                      ? 'bg-primary/20 text-primary border border-primary/40 font-semibold'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
+        {/* Workflow Steps */}
+        <div className="hidden md:flex items-center space-x-4 bg-slate-800/60 px-4 py-1.5 rounded-full border border-slate-700/50 text-xs">
+          <div className={`flex items-center space-x-1.5 ${!analysisId ? 'text-blue-400 font-medium' : 'text-slate-400'}`}>
+            <span className="w-4 h-4 rounded-full bg-blue-500/20 border border-blue-400 flex items-center justify-center text-[10px]">1</span>
+            <span>SCAN</span>
           </div>
-        )}
+          <span className="text-slate-600">→</span>
+          <div className={`flex items-center space-x-1.5 ${analysisId ? 'text-blue-400 font-medium' : 'text-slate-400'}`}>
+            <span className="w-4 h-4 rounded-full bg-blue-500/20 border border-blue-400 flex items-center justify-center text-[10px]">2</span>
+            <span>EXTRACT</span>
+          </div>
+          <span className="text-slate-600">→</span>
+          <div className={`flex items-center space-x-1.5 ${analysisId ? 'text-blue-400 font-medium' : 'text-slate-400'}`}>
+            <span className="w-4 h-4 rounded-full bg-blue-500/20 border border-blue-400 flex items-center justify-center text-[10px]">3</span>
+            <span>VERIFY</span>
+          </div>
+          <span className="text-slate-600">→</span>
+          <div className={`flex items-center space-x-1.5 ${analysisId ? 'text-blue-400 font-medium' : 'text-slate-400'}`}>
+            <span className="w-4 h-4 rounded-full bg-blue-500/20 border border-blue-400 flex items-center justify-center text-[10px]">4</span>
+            <span>REPORT</span>
+          </div>
+        </div>
+
+        {/* Navigation Links & Reset Action */}
+        <div className="flex items-center space-x-2">
+          {analysisId ? (
+            <>
+              <NavLink
+                to={`/overview/${analysisId}`}
+                className={({ isActive }) =>
+                  `flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    isActive ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800'
+                  }`
+                }
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                <span className="hidden sm:inline">Dashboard</span>
+              </NavLink>
+
+              <NavLink
+                to={`/reports/${analysisId}`}
+                className={({ isActive }) =>
+                  `flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    isActive ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800'
+                  }`
+                }
+              >
+                <FileText className="w-4 h-4" />
+                <span className="hidden sm:inline">Report</span>
+              </NavLink>
+
+              <button
+                onClick={handleNewScan}
+                className="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition-colors"
+                title="Reset and perform another scan"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>New Scan</span>
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => navigate('/')}
+              className="flex items-center space-x-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-medium transition-colors shadow-sm"
+            >
+              <Upload className="w-4 h-4" />
+              <span>Upload Label</span>
+            </button>
+          )}
+        </div>
+
       </div>
     </header>
   );
