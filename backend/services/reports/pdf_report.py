@@ -15,7 +15,7 @@ from reportlab.platypus import (
     KeepTogether,
 )
 from reportlab.pdfgen import canvas
-from backend.models.schemas import ComplianceResult
+from backend.models.schemas import AnalysisResult
 
 
 class NumberedCanvas(canvas.Canvas):
@@ -41,7 +41,7 @@ class NumberedCanvas(canvas.Canvas):
         self.setFillColor(colors.HexColor("#64748B"))
 
         # Header
-        self.drawString(36, 810, "LEGAL METROLOGY PACKAGED COMMODITIES COMPLIANCE REPORT (SIH26034)")
+        self.drawString(36, 810, "SECUREMAILSCOPE — PASSIVE EMAIL CRYPTOGRAPHIC ASSESSMENT")
         self.setStrokeColor(colors.HexColor("#CBD5E1"))
         self.setLineWidth(0.5)
         self.line(36, 804, 559, 804)
@@ -50,11 +50,11 @@ class NumberedCanvas(canvas.Canvas):
         self.line(36, 45, 559, 45)
         page_text = f"Page {self._pageNumber} of {page_count}"
         self.drawRightString(559, 32, page_text)
-        self.drawString(36, 32, "CONFIDENTIAL & OFFICIAL COMPLIANCE INSPECTION AUDIT")
+        self.drawString(36, 32, "CONFIDENTIAL & OFFICIAL CRYPTOGRAPHIC AUDIT REPORT")
         self.restoreState()
 
 
-def generate_pdf_report(result: ComplianceResult) -> bytes:
+def generate_pdf_report(result: AnalysisResult) -> bytes:
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer,
@@ -67,7 +67,6 @@ def generate_pdf_report(result: ComplianceResult) -> bytes:
 
     styles = getSampleStyleSheet()
 
-    # Custom typography styles
     title_style = ParagraphStyle(
         "DocTitle",
         parent=styles["Heading1"],
@@ -107,15 +106,15 @@ def generate_pdf_report(result: ComplianceResult) -> bytes:
     story = []
 
     # Title Banner
-    story.append(Paragraph("Legal Metrology Compliance Audit Report", title_style))
-    story.append(Paragraph("Rule 6 Inspection under Legal Metrology (Packaged Commodities) Rules, 2011", body_style))
+    story.append(Paragraph("SecureMailScope Security Assessment Report", title_style))
+    story.append(Paragraph("Passive Email Cryptographic Transport Inspection (SMTP, IMAP, POP3)", body_style))
     story.append(Spacer(1, 10))
 
-    # Meta Box
+    # Meta Table
     meta_data = [
-        [Paragraph("<b>Inspection ID:</b>", cell_bold), Paragraph(result.analysis_id, body_style), Paragraph("<b>Status:</b>", cell_bold), Paragraph(result.status.upper(), body_style)],
+        [Paragraph("<b>Analysis ID:</b>", cell_bold), Paragraph(result.analysis_id, body_style), Paragraph("<b>Status:</b>", cell_bold), Paragraph(result.status.upper(), body_style)],
         [Paragraph("<b>Date & Time:</b>", cell_bold), Paragraph(result.created_at, body_style), Paragraph("<b>Data Source:</b>", cell_bold), Paragraph(result.data_source, body_style)],
-        [Paragraph("<b>Package Image:</b>", cell_bold), Paragraph(result.file.name, body_style), Paragraph("<b>Compliance Score:</b>", cell_bold), Paragraph(f"<b>{result.score.score} / 100 ({result.score.rating})</b>", cell_bold)],
+        [Paragraph("<b>Capture File:</b>", cell_bold), Paragraph(result.file.name, body_style), Paragraph("<b>Security Score:</b>", cell_bold), Paragraph(f"<b>{result.score.score} / 100 ({result.score.rating})</b>", cell_bold)],
     ]
     meta_table = Table(meta_data, colWidths=[90, 170, 90, 170])
     meta_table.setStyle(
@@ -131,64 +130,36 @@ def generate_pdf_report(result: ComplianceResult) -> bytes:
     story.append(Spacer(1, 12))
 
     # Executive Summary Box
-    story.append(Paragraph("Executive Summary & Posture Rating", h1_style))
+    story.append(Paragraph("1. Executive Summary & Security Posture", h1_style))
     story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#2563EB"), spaceAfter=6))
-    story.append(Paragraph(result.ai_assessment.executive_summary, body_style))
+    story.append(Paragraph(result.ai.executive_summary, body_style))
     story.append(Spacer(1, 6))
-    story.append(Paragraph(f"<b>Why It Matters:</b> {result.ai_assessment.why_it_matters}", body_style))
+    story.append(Paragraph(f"<b>Why It Matters:</b> {result.ai.why_it_matters}", body_style))
     story.append(Spacer(1, 12))
 
-    # Mandatory Declarations Extracted Table
-    story.append(Paragraph("Extracted Mandatory Declarations (Rule 6)", h1_style))
+    # Verified Findings Table
+    story.append(Paragraph("2. Verified Cryptographic Security Findings", h1_style))
     story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#2563EB"), spaceAfter=6))
 
-    ext = result.extracted_data
-    declarations_data = [
-        [Paragraph("<b>Mandatory Field</b>", cell_bold), Paragraph("<b>Extracted Declaration Text</b>", cell_bold), Paragraph("<b>Status</b>", cell_bold)],
-        [Paragraph("Maximum Retail Price (MRP)", body_style), Paragraph(ext.mrp or "<i>NOT DECLARED</i>", body_style), Paragraph("PASS" if ext.mrp and "tax" in ext.mrp.lower() else ("WARNING" if ext.mrp else "FAIL"), body_style)],
-        [Paragraph("Net Quantity", body_style), Paragraph(ext.net_quantity or "<i>NOT DECLARED</i>", body_style), Paragraph("PASS" if ext.net_quantity else "FAIL", body_style)],
-        [Paragraph("Manufacturer / Packer", body_style), Paragraph(ext.manufacturer_details or "<i>NOT DECLARED</i>", body_style), Paragraph("PASS" if ext.manufacturer_details and len(ext.manufacturer_details) > 15 else "FAIL", body_style)],
-        [Paragraph("Date of Mfg / Packing", body_style), Paragraph(ext.packing_date or "<i>NOT DECLARED</i>", body_style), Paragraph("PASS" if ext.packing_date else "FAIL", body_style)],
-        [Paragraph("Consumer Care Helpline", body_style), Paragraph(ext.consumer_care_details or "<i>NOT DECLARED</i>", body_style), Paragraph("PASS" if ext.consumer_care_details else "FAIL", body_style)],
-        [Paragraph("Country of Origin", body_style), Paragraph(ext.country_of_origin or "<i>NOT DECLARED</i>", body_style), Paragraph("PASS" if ext.country_of_origin else "FAIL", body_style)],
+    findings_rows = [
+        [Paragraph("<b>Rule ID</b>", cell_bold), Paragraph("<b>Title & Description</b>", cell_bold), Paragraph("<b>Severity</b>", cell_bold), Paragraph("<b>Evidence & Session</b>", cell_bold)]
     ]
 
-    dec_table = Table(declarations_data, colWidths=[140, 300, 80])
-    dec_table.setStyle(
-        TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#EFF6FF")),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("TOPPADDING", (0, 0), (-1, -1), 5),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ])
-    )
-    story.append(dec_table)
-    story.append(Spacer(1, 14))
+    for f in result.findings:
+        sev_color = "#DC2626" if f.severity == "CRITICAL" else ("#EA580C" if f.severity == "HIGH" else ("#D97706" if f.severity == "MEDIUM" else "#2563EB"))
+        sev_p = Paragraph(f"<b><font color='{sev_color}'>{f.severity}</font></b>", body_style)
+        title_p = Paragraph(f"<b>[{f.rule_id}] {f.title}</b><br/>{f.impact}", body_style)
+        ev_p = Paragraph(f"<b>Session:</b> {f.session_id}<br/><b>Pkt:</b> #{f.evidence.packet_number or 'N/A'}<br/><b>Value:</b> {f.evidence.observed_value}", body_style)
 
-    # Detailed Rule Checks Table
-    story.append(Paragraph("Legal Metrology Compliance Rule Checks", h1_style))
-    story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#2563EB"), spaceAfter=6))
-
-    checks_rows = [
-        [Paragraph("<b>Rule ID</b>", cell_bold), Paragraph("<b>Title & Description</b>", cell_bold), Paragraph("<b>Status</b>", cell_bold), Paragraph("<b>Recommendation</b>", cell_bold)]
-    ]
-
-    for check in result.checks:
-        status_color = "#16A34A" if check.status == "PASS" else ("#D97706" if check.status == "WARNING" else "#DC2626")
-        status_p = Paragraph(f"<b><font color='{status_color}'>{check.status}</font></b><br/><font size=7 color='#64748B'>{check.severity}</font>", body_style)
-        title_p = Paragraph(f"<b>[{check.rule_id}] {check.title}</b><br/>{check.message}", body_style)
-        rec_p = Paragraph(check.recommendation, body_style)
-
-        checks_rows.append([
-            Paragraph(check.rule_id, cell_bold),
+        findings_rows.append([
+            Paragraph(f.rule_id, cell_bold),
             title_p,
-            status_p,
-            rec_p,
+            sev_p,
+            ev_p,
         ])
 
-    checks_table = Table(checks_rows, colWidths=[65, 195, 65, 195])
-    checks_table.setStyle(
+    findings_table = Table(findings_rows, colWidths=[65, 195, 65, 195])
+    findings_table.setStyle(
         TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F1F5F9")),
             ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
@@ -197,14 +168,14 @@ def generate_pdf_report(result: ComplianceResult) -> bytes:
             ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
         ])
     )
-    story.append(checks_table)
+    story.append(findings_table)
     story.append(Spacer(1, 14))
 
-    # Top Remediation Priorities
-    if result.ai_assessment.top_priorities:
-        story.append(Paragraph("Actionable Remediation Priorities", h1_style))
+    # Remediation Priorities
+    if result.ai.top_priorities:
+        story.append(Paragraph("3. Actionable Remediation Priorities", h1_style))
         story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#2563EB"), spaceAfter=6))
-        for idx, pri in enumerate(result.ai_assessment.top_priorities, 1):
+        for idx, pri in enumerate(result.ai.top_priorities, 1):
             story.append(Paragraph(f"<b>{idx}.</b> {pri}", body_style))
             story.append(Spacer(1, 3))
 

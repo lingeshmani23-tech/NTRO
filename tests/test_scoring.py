@@ -1,24 +1,42 @@
-from backend.models.schemas import ComplianceCheck
-from backend.services.scoring.compliance_score import calculate_compliance_score
+from backend.models.schemas import Finding, FindingEvidence
+from backend.services.scoring.risk_score import calculate_risk_score
 
 
-def test_score_calculation_100():
-    checks = [
-        ComplianceCheck(rule_id="LM-001", field="mrp", title="MRP", status="PASS", severity="CRITICAL", message="OK", recommendation="OK", reference="Ref"),
-        ComplianceCheck(rule_id="LM-002", field="net_qty", title="Qty", status="PASS", severity="CRITICAL", message="OK", recommendation="OK", reference="Ref"),
-    ]
-    score = calculate_compliance_score(checks)
+def test_score_calculation_clean():
+    score = calculate_risk_score([])
     assert score.score == 100
-    assert score.rating == "COMPLIANT"
+    assert score.rating == "SECURE"
 
 
-def test_score_calculation_deductions():
-    checks = [
-        ComplianceCheck(rule_id="LM-001", field="mrp", title="MRP", status="FAIL", severity="CRITICAL", message="Missing", recommendation="Fix", reference="Ref"),
-        ComplianceCheck(rule_id="LM-005", field="cc", title="CC", status="FAIL", severity="HIGH", message="Missing", recommendation="Fix", reference="Ref"),
+def test_score_calculation_penalties():
+    findings = [
+        Finding(
+            finding_id="TLS-005-SMTP-002",
+            rule_id="TLS-005",
+            title="Plaintext Email",
+            severity="CRITICAL",
+            protocol="SMTP",
+            session_id="SMTP-002",
+            evidence=FindingEvidence(session_id="SMTP-002", field="session.encryption", observed_value="False"),
+            impact="Exposes traffic",
+            recommendation="Enforce TLS",
+            reference="RFC 8314",
+        ),
+        Finding(
+            finding_id="TLS-001-SMTP-003",
+            rule_id="TLS-001",
+            title="Legacy TLS 1.0",
+            severity="HIGH",
+            protocol="SMTP",
+            session_id="SMTP-003",
+            evidence=FindingEvidence(session_id="SMTP-003", field="tls.handshake.version", observed_value="TLS 1.0"),
+            impact="Legacy TLS",
+            recommendation="Disable TLS 1.0",
+            reference="RFC 8996",
+        ),
     ]
-    score = calculate_compliance_score(checks)
-    # 100 - 25 (CRITICAL FAIL) - 15 (HIGH FAIL) = 60
-    assert score.score == 60
-    assert score.rating == "NEEDS_REVISION"
+    score = calculate_risk_score(findings)
+    # 100 - 30 (CRITICAL) - 20 (HIGH) = 50
+    assert score.score == 50
+    assert score.rating == "HIGH RISK"
     assert len(score.ledger) == 2

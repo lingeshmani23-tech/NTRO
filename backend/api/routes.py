@@ -12,18 +12,29 @@ from backend.models.schemas import (
     HealthResponse,
     StatusResponse,
     StageProgress,
-    ComplianceResult,
-    ExtractedPackageData,
-    ComplianceCheck,
+    AnalysisResult,
+    NormalizedSession,
+    Finding,
     FileInfo,
 )
-from backend.services.ocr.ocr_engine import extract_package_label, detect_ocr_availability
-from backend.services.rules.metrology_rules import MetrologyRuleEngine
-from backend.services.scoring.compliance_score import calculate_compliance_score
+from backend.services.pcap.validator import (
+    detect_tshark,
+    validate_pcap_file,
+    UnsupportedExtensionError,
+    FileTooLargeError,
+    CorruptPCAPError,
+    EmptyPCAPError,
+    TSharkUnavailableError,
+)
+from backend.services.pcap.parser import parse_pcap_with_tshark, TSharkParseError
+from backend.services.pcap.session_reconstructor import reconstruct_sessions
+from backend.services.rules.rule_engine import RuleEngine
+from backend.services.scoring.risk_score import calculate_risk_score
 from backend.services.ai.analyst import AIAnalyst
 from backend.services.reports.json_report import generate_json_report
 from backend.services.reports.pdf_report import generate_pdf_report
 from backend.services.database.db import save_analysis, get_analysis
+from backend.services.demo.dataset import generate_demo_analysis_result
 
 router = APIRouter(prefix="/api")
 
@@ -31,11 +42,14 @@ router = APIRouter(prefix="/api")
 analysis_status_store: Dict[str, Dict[str, Any]] = {}
 
 STAGES = [
-    ("upload", "Package label image received"),
-    ("ocr_extract", "OCR Label declaration extraction"),
-    ("rule_check", "Legal Metrology Rule 6 checks"),
-    ("scoring", "Compliance score calculation"),
-    ("ai_assessment", "Executive assessment generation"),
+    ("validate", "PCAP capture validated"),
+    ("tshark_parse", "TShark packet extraction"),
+    ("protocol_detect", "Email protocol identification"),
+    ("session_reconstruct", "TCP stream session reconstruction"),
+    ("crypto_analysis", "TLS, cert, and STARTTLS evidence extraction"),
+    ("rules", "Deterministic security rule engine checks"),
+    ("scoring", "Deterministic risk score calculation"),
+    ("ai_assessment", "AI executive assessment generation"),
 ]
 
 
@@ -69,54 +83,59 @@ def update_stage(analysis_id: str, stage_id: str, stage_status: str, detail: Opt
 
 @router.get("/health", response_model=HealthResponse)
 def health_check():
+    tshark_info = detect_tshark()
     return HealthResponse(
         status="ok",
-        ocr_engine_available=detect_ocr_availability(),
+        tshark_available=tshark_info["available"],
         llm_available=bool(settings.LLM_API_KEY.strip()),
         version="1.0.0",
     )
 
 
-def process_analysis_pipeline(analysis_id: str, file_bytes: bytes, file_name: str, content_type: str, data_source: str):
+def process_pcap_pipeline(analysis_id: str, filepath: str, file_name: str, file_size: int, data_source: str):
     try:
         now_str = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-        update_stage(analysis_id, "upload", "completed", "Image received")
+        update_stage(analysis_id, "validate", "completed", "File validated")
 
-        # 1. OCR Extraction
-        update_stage(analysis_id, "ocr_extract", "in_progress", "Extracting label declarations...")
-        extracted_data = extract_package_label(file_bytes, file_name)
-        update_stage(analysis_id, "ocr_extract", "completed", "6 declarations extracted")
+        # 1. TShark parsing
+        update_stage(analysis_id, "tshark_parse", "in_progress", "Extracting packets via TShark...")
+        packets = parse_pcap_with_tshark(filepath)
+        update_stage(analysis_id, "tshark_parse", "completed", f"{len(packets)} packets extracted")
 
-        # 2. Rule Checks
-        update_stage(analysis_id, "rule_check", "in_progress", "Running Legal Metrology checks...")
-        engine = MetrologyRuleEngine()
-        checks = engine.evaluate(extracted_data)
-        update_stage(analysis_id, "rule_check", "completed", f"{len(checks)} rules evaluated")
+        # 2. Protocol Identification & Session Reconstruction
+        update_stage(analysis_id, "protocol_detect", "completed", "SMTP/IMAP/POP3 identified")
+        update_stage(analysis_id, "session_reconstruct", "in_progress", "Reconstructing TCP streams...")
+        sessions, protocol_stats = reconstruct_sessions(packets)
+        update_stage(analysis_id, "session_reconstruct", "completed", f"{len(sessions)} sessions reconstructed")
 
-        # 3. Compliance Scoring
-        update_stage(analysis_id, "scoring", "in_progress", "Calculating compliance score...")
-        score = calculate_compliance_score(checks)
+        # 3. Crypto Evidence Extraction & Rules
+        update_stage(analysis_id, "crypto_analysis", "completed", "Evidence extracted")
+        update_stage(analysis_id, "rules", "in_progress", "Running security rules...")
+        rule_engine = RuleEngine()
+        findings = rule_engine.evaluate_all(sessions)
+        update_stage(analysis_id, "rules", "completed", f"{len(findings)} verified findings")
+
+        # 4. Risk Scoring
+        update_stage(analysis_id, "scoring", "in_progress", "Calculating risk score...")
+        score = calculate_risk_score(findings)
         update_stage(analysis_id, "scoring", "completed", f"Score: {score.score}/100 ({score.rating})")
 
-        # 4. AI Executive Assessment
+        # 5. AI Assessment
         update_stage(analysis_id, "ai_assessment", "in_progress", "Generating executive summary...")
         analyst = AIAnalyst()
-        ai_assessment = analyst.generate_assessment(score, checks)
+        ai_assessment = analyst.generate_assessment(score, findings)
         update_stage(analysis_id, "ai_assessment", "completed", "Assessment completed")
 
-        result = ComplianceResult(
+        result = AnalysisResult(
             analysis_id=analysis_id,
             created_at=now_str,
             data_source=data_source,
-            file=FileInfo(
-                name=file_name,
-                size_bytes=len(file_bytes),
-                content_type=content_type,
-            ),
-            extracted_data=extracted_data,
-            checks=checks,
+            file=FileInfo(name=file_name, size_bytes=file_size, content_type="application/vnd.tcpdump.pcap"),
+            sessions=sessions,
+            findings=findings,
             score=score,
-            ai_assessment=ai_assessment,
+            ai=ai_assessment,
+            protocol_stats=protocol_stats,
             status="completed",
         )
 
@@ -131,29 +150,46 @@ def process_analysis_pipeline(analysis_id: str, file_bytes: bytes, file_name: st
                 if item.status == "in_progress":
                     item.status = "failed"
                     item.detail = f"Failed: {str(e)}"
+    finally:
+        if os.path.exists(filepath):
+            try:
+                os.remove(filepath)
+            except Exception:
+                pass
 
 
 @router.post("/analyze")
-async def analyze_package(
+async def analyze_pcap(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
 ):
     if not file.filename:
         raise HTTPException(status_code=400, detail="No file provided")
 
+    ext = Path(file.filename).suffix.lower()
+    if ext not in (".pcap", ".pcapng"):
+        raise HTTPException(status_code=400, detail=f"Unsupported file extension '{ext}'. Must be .pcap or .pcapng")
+
+    temp_dir = Path("/tmp") if os.getenv("VERCEL") else Path("scratch")
+    temp_dir.mkdir(exist_ok=True)
+    temp_path = temp_dir / f"upload_{uuid.uuid4().hex}{ext}"
+
     file_bytes = await file.read()
     if len(file_bytes) == 0:
-        raise HTTPException(status_code=400, detail="Empty file uploaded")
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+    with open(temp_path, "wb") as f:
+        f.write(file_bytes)
 
     analysis_id = str(uuid.uuid4())
     init_status(analysis_id)
 
     background_tasks.add_task(
-        process_analysis_pipeline,
+        process_pcap_pipeline,
         analysis_id,
-        file_bytes,
+        str(temp_path),
         file.filename,
-        file.content_type or "image/png",
+        len(file_bytes),
         "file_upload",
     )
 
@@ -161,24 +197,18 @@ async def analyze_package(
 
 
 @router.post("/demo")
-def trigger_demo_analysis(sample_type: str = Query(default="compliant")):
+def trigger_demo_analysis():
     analysis_id = str(uuid.uuid4())
     init_status(analysis_id)
 
-    file_name = "organic_wheat_atta_pack.png"
-    if sample_type == "non_compliant":
-        file_name = "defect_ceylon_tea_label.png"
-    elif sample_type == "critical":
-        file_name = "critical_unbranded_soap.png"
+    result = generate_demo_analysis_result()
+    result.analysis_id = analysis_id
+    save_analysis(result)
 
-    dummy_bytes = b"DEMO_LABEL_BYTES"
-    process_analysis_pipeline(
-        analysis_id,
-        dummy_bytes,
-        file_name,
-        "image/png",
-        "demo_dataset",
-    )
+    if analysis_id in analysis_status_store:
+        analysis_status_store[analysis_id]["status"] = "completed"
+        for item in analysis_status_store[analysis_id]["progress"]:
+            item.status = "completed"
 
     return {"analysis_id": analysis_id}
 
@@ -209,7 +239,7 @@ def get_analysis_status(analysis_id: str):
     raise HTTPException(status_code=404, detail="Analysis ID not found")
 
 
-@router.get("/analyze/{analysis_id}", response_model=ComplianceResult)
+@router.get("/analyze/{analysis_id}", response_model=AnalysisResult)
 def get_analysis_result(analysis_id: str):
     res = get_analysis(analysis_id)
     if not res:
@@ -217,20 +247,23 @@ def get_analysis_result(analysis_id: str):
     return res
 
 
-@router.get("/analyze/{analysis_id}/declarations", response_model=ExtractedPackageData)
-def get_analysis_declarations(analysis_id: str):
+@router.get("/analyze/{analysis_id}/sessions", response_model=List[NormalizedSession])
+def get_analysis_sessions(analysis_id: str):
     res = get_analysis(analysis_id)
     if not res:
         raise HTTPException(status_code=404, detail="Analysis result not found")
-    return res.extracted_data
+    return res.sessions
 
 
-@router.get("/analyze/{analysis_id}/checks", response_model=List[ComplianceCheck])
-def get_analysis_checks(analysis_id: str):
+@router.get("/analyze/{analysis_id}/findings", response_model=List[Finding])
+def get_analysis_findings(analysis_id: str, severity: Optional[str] = Query(default=None)):
     res = get_analysis(analysis_id)
     if not res:
         raise HTTPException(status_code=404, detail="Analysis result not found")
-    return res.checks
+    if severity:
+        sev_upper = severity.upper()
+        return [f for f in res.findings if f.severity == sev_upper]
+    return res.findings
 
 
 @router.get("/analyze/{analysis_id}/report/{format}")
@@ -245,14 +278,14 @@ def download_report(analysis_id: str, format: str):
         return Response(
             content=content,
             media_type="application/json",
-            headers={"Content-Disposition": f"attachment; filename=Legal_Metrology_Report_{analysis_id}.json"},
+            headers={"Content-Disposition": f"attachment; filename=SecureMailScope_Report_{analysis_id}.json"},
         )
     elif fmt == "pdf":
         pdf_bytes = generate_pdf_report(res)
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",
-            headers={"Content-Disposition": f"inline; filename=Legal_Metrology_Report_{analysis_id}.pdf"},
+            headers={"Content-Disposition": f"inline; filename=SecureMailScope_Report_{analysis_id}.pdf"},
         )
     else:
         raise HTTPException(status_code=400, detail="Invalid report format. Use 'pdf' or 'json'.")

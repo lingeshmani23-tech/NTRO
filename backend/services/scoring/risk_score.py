@@ -13,14 +13,13 @@ SEVERITY_WEIGHTS = {
 def compute_rating(score: int) -> str:
     if score >= 90:
         return "SECURE"
-    elif score >= 75:
+    elif score >= 70:
         return "LOW RISK"
     elif score >= 50:
-        return "MEDIUM RISK"
-    elif score >= 25:
         return "HIGH RISK"
     else:
         return "CRITICAL RISK"
+
 
 
 def calculate_risk_score(findings: List[Finding]) -> RiskScore:

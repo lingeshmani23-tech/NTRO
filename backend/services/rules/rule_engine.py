@@ -55,23 +55,24 @@ class RuleEngine:
                 fired_rule_ids.add(rule_id)
 
                 finding = Finding(
+                    finding_id=f"{rule_id}-{session.session_id}",
                     rule_id=rule_id,
                     title=rule["title"],
                     severity=rule["severity"],
                     protocol=session.protocol,
                     session_id=session.session_id,
-                    description=rule["description"],
                     evidence=FindingEvidence(
                         session_id=session.session_id,
                         packet_number=pkt_num,
                         field=field,
-                        observed_value=obs_val,
+                        observed_value=str(obs_val),
                     ),
                     impact=rule["impact"],
                     recommendation=rule["recommendation"],
                     reference=rule["reference"],
                 )
                 findings.append(finding)
+
 
         return findings
 

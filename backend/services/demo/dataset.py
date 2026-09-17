@@ -8,7 +8,6 @@ from backend.models.schemas import (
     EvidenceItem,
     AnalysisResult,
     FileInfo,
-    TotalsSummary,
 )
 from backend.services.rules.rule_engine import RuleEngine
 from backend.services.scoring.risk_score import calculate_risk_score
@@ -20,25 +19,18 @@ def build_demo_sessions() -> List[NormalizedSession]:
         # Session 1: SMTP-001 (Port 587, STARTTLS, TLS 1.2, Strong AEAD cipher, Valid 2048 cert)
         NormalizedSession(
             session_id="SMTP-001",
+            stream_id=1,
             protocol="SMTP",
-            transport="TCP",
-            source="10.0.0.15",
-            destination="203.0.113.25",
-            destination_host="mail.example.com",
-            port=587,
-            tcp_stream=1,
-            packet_count=46,
-            first_packet=101,
-            last_packet=146,
-            start_time="2026-02-11T09:14:02.331Z",
-            end_time="2026-02-11T09:14:07.902Z",
+            source_ip="10.0.0.15",
+            destination_ip="203.0.113.25",
+            source_port=54321,
+            destination_port=587,
             encryption=True,
             starttls=StartTLSSummary(
-                offered=True, issued=True, tls_established=True, downgrade_suspected=False
+                offered=True, command_observed=True, accepted=True, tls_established=True, downgrade_indicator=False
             ),
             tls_version="TLS 1.2",
             cipher_suite="TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
-            cipher_hex="0xc030",
             certificate=CertificateInfo(
                 present=True,
                 subject_cn="mail.example.com",
@@ -46,66 +38,50 @@ def build_demo_sessions() -> List[NormalizedSession]:
                 not_before="2025-01-01T00:00:00Z",
                 not_after="2027-01-01T00:00:00Z",
                 expired=False,
-                hostname_valid=True,
+                hostname_mismatch=False,
                 key_size=2048,
                 signature_algorithm="SHA256-RSA",
             ),
-            authentication=AuthenticationSummary(mechanism="AUTH PLAIN", plaintext_exposed=False),
+            auth_summary=AuthenticationSummary(auth_attempted=True, mechanism="AUTH PLAIN", unencrypted_exposure=False),
             evidence=[
-                EvidenceItem(packet_number=112, field="tls.handshake.version", value="0x0303"),
-                EvidenceItem(
-                    packet_number=112, field="tls.handshake.ciphersuite", value="0xc030"
-                ),
+                EvidenceItem(frame_number=112, timestamp="2026-02-11T09:14:02.331Z", field="tls.handshake.version", observed_value="TLS 1.2"),
+                EvidenceItem(frame_number=112, timestamp="2026-02-11T09:14:02.331Z", field="tls.handshake.ciphersuite", observed_value="0xc030"),
             ],
         ),
         # Session 2: SMTP-002 (Port 25, Plaintext, No AUTH)
         NormalizedSession(
             session_id="SMTP-002",
+            stream_id=2,
             protocol="SMTP",
-            transport="TCP",
-            source="10.0.0.16",
-            destination="203.0.113.25",
-            destination_host="mail.example.com",
-            port=25,
-            tcp_stream=2,
-            packet_count=18,
-            first_packet=201,
-            last_packet=218,
-            start_time="2026-02-11T09:15:00.120Z",
-            end_time="2026-02-11T09:15:02.450Z",
+            source_ip="10.0.0.16",
+            destination_ip="203.0.113.25",
+            source_port=54322,
+            destination_port=25,
             encryption=False,
             starttls=StartTLSSummary(
-                offered=False, issued=False, tls_established=False, downgrade_suspected=False
+                offered=False, command_observed=False, accepted=False, tls_established=False, downgrade_indicator=False
             ),
             tls_version=None,
             cipher_suite=None,
-            cipher_hex=None,
             certificate=None,
-            authentication=None,
+            auth_summary=None,
             evidence=[
-                EvidenceItem(packet_number=205, field="session.encryption", value="False"),
+                EvidenceItem(frame_number=205, timestamp="2026-02-11T09:15:00.120Z", field="session.encryption", observed_value="False"),
             ],
         ),
         # Session 3: SMTP-003 (Port 465, TLS 1.0, CBC cipher)
         NormalizedSession(
             session_id="SMTP-003",
+            stream_id=3,
             protocol="SMTP",
-            transport="TCP",
-            source="10.0.0.17",
-            destination="203.0.113.25",
-            destination_host="mail.example.com",
-            port=465,
-            tcp_stream=3,
-            packet_count=32,
-            first_packet=301,
-            last_packet=332,
-            start_time="2026-02-11T09:16:10.000Z",
-            end_time="2026-02-11T09:16:14.200Z",
+            source_ip="10.0.0.17",
+            destination_ip="203.0.113.25",
+            source_port=54323,
+            destination_port=465,
             encryption=True,
             starttls=None,
             tls_version="TLS 1.0",
             cipher_suite="TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
-            cipher_hex="0xc014",
             certificate=CertificateInfo(
                 present=True,
                 subject_cn="mail.example.com",
@@ -113,38 +89,29 @@ def build_demo_sessions() -> List[NormalizedSession]:
                 not_before="2025-06-01T00:00:00Z",
                 not_after="2027-06-01T00:00:00Z",
                 expired=False,
-                hostname_valid=True,
+                hostname_mismatch=False,
                 key_size=2048,
                 signature_algorithm="SHA256-RSA",
             ),
-            authentication=AuthenticationSummary(mechanism="AUTH LOGIN", plaintext_exposed=False),
+            auth_summary=AuthenticationSummary(auth_attempted=True, mechanism="AUTH LOGIN", unencrypted_exposure=False),
             evidence=[
-                EvidenceItem(packet_number=308, field="tls.handshake.version", value="0x0301"),
-                EvidenceItem(
-                    packet_number=308, field="tls.handshake.ciphersuite", value="0xc014"
-                ),
+                EvidenceItem(frame_number=308, timestamp="2026-02-11T09:16:10.000Z", field="tls.handshake.version", observed_value="TLS 1.0"),
+                EvidenceItem(frame_number=308, timestamp="2026-02-11T09:16:10.000Z", field="tls.handshake.ciphersuite", observed_value="0xc014"),
             ],
         ),
         # Session 4: IMAP-001 (Port 993, TLS 1.2, Strong AEAD cipher, Weak RSA 1024-bit cert)
         NormalizedSession(
             session_id="IMAP-001",
+            stream_id=4,
             protocol="IMAP",
-            transport="TCP",
-            source="10.0.0.20",
-            destination="203.0.113.26",
-            destination_host="imap.example.com",
-            port=993,
-            tcp_stream=4,
-            packet_count=54,
-            first_packet=401,
-            last_packet=454,
-            start_time="2026-02-11T09:18:00.000Z",
-            end_time="2026-02-11T09:18:10.500Z",
+            source_ip="10.0.0.20",
+            destination_ip="203.0.113.26",
+            source_port=54324,
+            destination_port=993,
             encryption=True,
             starttls=None,
             tls_version="TLS 1.2",
             cipher_suite="TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-            cipher_hex="0xc02b",
             certificate=CertificateInfo(
                 present=True,
                 subject_cn="imap.example.com",
@@ -152,64 +119,50 @@ def build_demo_sessions() -> List[NormalizedSession]:
                 not_before="2025-01-01T00:00:00Z",
                 not_after="2027-01-01T00:00:00Z",
                 expired=False,
-                hostname_valid=True,
+                hostname_mismatch=False,
                 key_size=1024,
                 signature_algorithm="SHA256-RSA",
             ),
-            authentication=AuthenticationSummary(mechanism="LOGINDISABLED", plaintext_exposed=False),
+            auth_summary=AuthenticationSummary(auth_attempted=False, mechanism=None, unencrypted_exposure=False),
             evidence=[
-                EvidenceItem(packet_number=410, field="tls.handshake.version", value="0x0303"),
-                EvidenceItem(packet_number=412, field="pkcs1.modulus", value="1024 bits"),
+                EvidenceItem(frame_number=410, timestamp="2026-02-11T09:18:00.000Z", field="tls.handshake.version", observed_value="TLS 1.2"),
+                EvidenceItem(frame_number=412, timestamp="2026-02-11T09:18:00.000Z", field="pkcs1.modulus", observed_value="1024 bits"),
             ],
         ),
         # Session 5: IMAP-002 (Port 143, Plaintext)
         NormalizedSession(
             session_id="IMAP-002",
+            stream_id=5,
             protocol="IMAP",
-            transport="TCP",
-            source="10.0.0.21",
-            destination="203.0.113.26",
-            destination_host="imap.example.com",
-            port=143,
-            tcp_stream=5,
-            packet_count=14,
-            first_packet=501,
-            last_packet=514,
-            start_time="2026-02-11T09:19:00.000Z",
-            end_time="2026-02-11T09:19:03.100Z",
+            source_ip="10.0.0.21",
+            destination_ip="203.0.113.26",
+            source_port=54325,
+            destination_port=143,
             encryption=False,
             starttls=StartTLSSummary(
-                offered=False, issued=False, tls_established=False, downgrade_suspected=False
+                offered=False, command_observed=False, accepted=False, tls_established=False, downgrade_indicator=False
             ),
             tls_version=None,
             cipher_suite=None,
-            cipher_hex=None,
             certificate=None,
-            authentication=None,
+            auth_summary=None,
             evidence=[
-                EvidenceItem(packet_number=504, field="session.encryption", value="False"),
+                EvidenceItem(frame_number=504, timestamp="2026-02-11T09:19:00.000Z", field="session.encryption", observed_value="False"),
             ],
         ),
         # Session 6: POP3-001 (Port 995, TLS 1.3, AES-256-GCM)
         NormalizedSession(
             session_id="POP3-001",
+            stream_id=6,
             protocol="POP3",
-            transport="TCP",
-            source="10.0.0.30",
-            destination="203.0.113.27",
-            destination_host="pop3.example.com",
-            port=995,
-            tcp_stream=6,
-            packet_count=28,
-            first_packet=601,
-            last_packet=628,
-            start_time="2026-02-11T09:20:00.000Z",
-            end_time="2026-02-11T09:20:04.800Z",
+            source_ip="10.0.0.30",
+            destination_ip="203.0.113.27",
+            source_port=54326,
+            destination_port=995,
             encryption=True,
             starttls=None,
             tls_version="TLS 1.3",
             cipher_suite="TLS_AES_256_GCM_SHA384",
-            cipher_hex="0x1302",
             certificate=CertificateInfo(
                 present=True,
                 subject_cn="pop3.example.com",
@@ -217,41 +170,34 @@ def build_demo_sessions() -> List[NormalizedSession]:
                 not_before="2025-01-01T00:00:00Z",
                 not_after="2027-01-01T00:00:00Z",
                 expired=False,
-                hostname_valid=True,
+                hostname_mismatch=False,
                 key_size=2048,
                 signature_algorithm="SHA256-RSA",
             ),
-            authentication=None,
+            auth_summary=None,
             evidence=[
-                EvidenceItem(packet_number=606, field="tls.handshake.version", value="0x0304"),
+                EvidenceItem(frame_number=606, timestamp="2026-02-11T09:20:00.000Z", field="tls.handshake.version", observed_value="TLS 1.3"),
             ],
         ),
         # Session 7: POP3-002 (Port 110, Plaintext)
         NormalizedSession(
             session_id="POP3-002",
+            stream_id=7,
             protocol="POP3",
-            transport="TCP",
-            source="10.0.0.31",
-            destination="203.0.113.27",
-            destination_host="pop3.example.com",
-            port=110,
-            tcp_stream=7,
-            packet_count=12,
-            first_packet=701,
-            last_packet=712,
-            start_time="2026-02-11T09:21:00.000Z",
-            end_time="2026-02-11T09:21:02.000Z",
+            source_ip="10.0.0.31",
+            destination_ip="203.0.113.27",
+            source_port=54327,
+            destination_port=110,
             encryption=False,
             starttls=StartTLSSummary(
-                offered=False, issued=False, tls_established=False, downgrade_suspected=False
+                offered=False, command_observed=False, accepted=False, tls_established=False, downgrade_indicator=False
             ),
             tls_version=None,
             cipher_suite=None,
-            cipher_hex=None,
             certificate=None,
-            authentication=None,
+            auth_summary=None,
             evidence=[
-                EvidenceItem(packet_number=703, field="session.encryption", value="False"),
+                EvidenceItem(frame_number=703, timestamp="2026-02-11T09:21:00.000Z", field="session.encryption", observed_value="False"),
             ],
         ),
     ]
@@ -267,24 +213,18 @@ def generate_demo_analysis_result() -> AnalysisResult:
     ai_assessment = ai_analyst.generate_assessment(score=score, findings=findings)
 
     protocol_stats = {"SMTP": 3, "IMAP": 2, "POP3": 2, "TLS": 4, "TCP": 7}
-    total_packets = sum(s.packet_count for s in sessions)
-    encrypted_count = sum(1 for s in sessions if s.encryption is True)
-    plaintext_count = sum(1 for s in sessions if s.encryption is False)
-
-    totals = TotalsSummary(
-        packets=total_packets,
-        sessions=7,
-        email_sessions=7,
-        encrypted_sessions=encrypted_count,
-        plaintext_sessions=plaintext_count,
-        findings=len(findings),
-    )
+    tls_stats = {"TLS 1.0": 1, "TLS 1.2": 2, "TLS 1.3": 1, "None": 3}
+    cipher_stats = {
+        "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384": 1,
+        "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA": 1,
+        "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256": 1,
+        "TLS_AES_256_GCM_SHA384": 1,
+    }
 
     file_info = FileInfo(
         name="demo_synthetic_capture.pcapng",
         size_bytes=102400,
-        packet_count=total_packets,
-        sha256="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        content_type="application/vnd.tcpdump.pcap",
     )
 
     analysis_id = str(uuid.uuid4())
@@ -296,11 +236,10 @@ def generate_demo_analysis_result() -> AnalysisResult:
         file=file_info,
         status="completed",
         protocol_stats=protocol_stats,
-        totals=totals,
+        tls_stats=tls_stats,
+        cipher_stats=cipher_stats,
         sessions=sessions,
         findings=findings,
         score=score,
         ai=ai_assessment,
-        errors=[],
-        warnings=[],
     )

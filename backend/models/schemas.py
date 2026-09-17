@@ -2,25 +2,84 @@ from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 
 
-class ExtractedPackageData(BaseModel):
-    mrp: Optional[str] = Field(default=None, description="Maximum Retail Price declaration")
-    net_quantity: Optional[str] = Field(default=None, description="Declared Net Quantity")
-    manufacturer_details: Optional[str] = Field(default=None, description="Manufacturer/Packer name and address")
-    packing_date: Optional[str] = Field(default=None, description="Month and year of manufacture/packing")
-    consumer_care_details: Optional[str] = Field(default=None, description="Consumer care contact details")
-    country_of_origin: Optional[str] = Field(default=None, description="Country of origin declaration")
-    raw_text: Optional[str] = Field(default=None, description="Complete raw OCR text extracted from package label")
-    confidence_scores: Dict[str, float] = Field(default_factory=dict, description="OCR extraction confidence scores per field")
-
-
-class ComplianceCheck(BaseModel):
-    rule_id: str
+class EvidenceItem(BaseModel):
+    frame_number: Optional[int] = None
+    packet_number: Optional[int] = None
+    timestamp: Optional[str] = None
     field: str
+    observed_value: str
+
+    def model_post_init(self, __context):
+        if self.packet_number is None and self.frame_number is not None:
+            self.packet_number = self.frame_number
+        elif self.frame_number is None and self.packet_number is not None:
+            self.frame_number = self.packet_number
+
+
+
+class CertificateInfo(BaseModel):
+    present: bool = False
+    not_before: Optional[str] = None
+    not_after: Optional[str] = None
+    subject_cn: Optional[str] = None
+    issuer_cn: Optional[str] = None
+    key_size: Optional[int] = None
+    signature_algorithm: Optional[str] = None
+    san_domains: List[str] = Field(default_factory=list)
+    expired: bool = False
+    validity_issue: bool = False
+    hostname_mismatch: bool = False
+
+
+class StartTLSSummary(BaseModel):
+    offered: bool = False
+    command_observed: bool = False
+    accepted: bool = False
+    tls_established: bool = False
+    downgrade_indicator: bool = False
+
+
+class AuthenticationSummary(BaseModel):
+    auth_attempted: bool = False
+    mechanism: Optional[str] = None
+    unencrypted_exposure: bool = False
+
+
+class NormalizedSession(BaseModel):
+    session_id: str
+    stream_id: int
+    protocol: str = Field(description="SMTP, IMAP, or POP3")
+    source_ip: str
+    destination_ip: str
+    source_port: int
+    destination_port: int
+    encryption: bool = False
+    tls_version: Optional[str] = None
+    cipher_suite: Optional[str] = None
+    certificate: Optional[CertificateInfo] = None
+    starttls: Optional[StartTLSSummary] = None
+    auth_summary: Optional[AuthenticationSummary] = None
+    evidence: List[EvidenceItem] = Field(default_factory=list)
+    first_packet: int = 1
+    last_packet: int = 1
+
+
+class FindingEvidence(BaseModel):
+    session_id: str
+    packet_number: Optional[int] = None
+    field: str
+    observed_value: str
+
+
+class Finding(BaseModel):
+    finding_id: str
+    rule_id: str
     title: str
-    status: str = Field(description="PASS, WARNING, or FAIL")
-    severity: str = Field(description="CRITICAL, HIGH, MEDIUM, or LOW")
-    message: str
-    observed_value: Optional[str] = None
+    severity: str = Field(description="CRITICAL, HIGH, MEDIUM, LOW, or INFO")
+    protocol: str
+    session_id: str
+    evidence: FindingEvidence
+    impact: str
     recommendation: str
     reference: str
 
@@ -28,13 +87,20 @@ class ComplianceCheck(BaseModel):
 class ScoreLedgerItem(BaseModel):
     rule_id: str
     severity: str
-    deduction: int
-    reason: str
+    penalty: int = 0
+    deduction: int = 0
+    occurrences: int = 1
+    reason: str = ""
 
 
-class ComplianceScore(BaseModel):
-    score: int = Field(ge=0, le=100, description="Compliance score from 0 to 100")
-    rating: str = Field(description="COMPLIANT, NEEDS_REVISION, or NON_COMPLIANT")
+
+class RiskScore(BaseModel):
+    score: int = Field(ge=0, le=100, description="Risk Score from 0 to 100")
+    rating: str = Field(description="LOW RISK, MEDIUM RISK, HIGH RISK, or CRITICAL RISK")
+    critical: int = 0
+    high: int = 0
+    medium: int = 0
+    low: int = 0
     ledger: List[ScoreLedgerItem] = Field(default_factory=list)
 
 
@@ -55,7 +121,7 @@ class AIAssessment(BaseModel):
 class FileInfo(BaseModel):
     name: str
     size_bytes: int
-    content_type: str = "image/png"
+    content_type: str = "application/vnd.tcpdump.pcap"
 
 
 class StageProgress(BaseModel):
@@ -71,20 +137,23 @@ class StatusResponse(BaseModel):
     progress: List[StageProgress]
 
 
-class ComplianceResult(BaseModel):
+class AnalysisResult(BaseModel):
     analysis_id: str
     created_at: str
     data_source: str
     file: FileInfo
-    extracted_data: ExtractedPackageData
-    checks: List[ComplianceCheck]
-    score: ComplianceScore
-    ai_assessment: AIAssessment
+    sessions: List[NormalizedSession]
+    findings: List[Finding]
+    score: RiskScore
+    ai: AIAssessment
+    protocol_stats: Dict[str, int] = Field(default_factory=dict)
+    tls_stats: Dict[str, int] = Field(default_factory=dict)
+    cipher_stats: Dict[str, int] = Field(default_factory=dict)
     status: str = "completed"
 
 
 class HealthResponse(BaseModel):
     status: str = "ok"
-    ocr_engine_available: bool = True
+    tshark_available: bool = True
     llm_available: bool = False
     version: str = "1.0.0"

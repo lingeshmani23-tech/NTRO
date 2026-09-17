@@ -1,9 +1,9 @@
 import type {
   HealthResponse,
   StatusResponse,
-  ComplianceResult,
-  ExtractedPackageData,
-  ComplianceCheck,
+  AnalysisResult,
+  NormalizedSession,
+  Finding,
 } from '../types/api';
 
 const API_BASE = '/api';
@@ -14,15 +14,15 @@ export async function fetchHealth(): Promise<HealthResponse> {
   return res.json();
 }
 
-export async function triggerDemoAnalysis(sampleType: string = 'compliant'): Promise<{ analysis_id: string }> {
-  const res = await fetch(`${API_BASE}/demo?sample_type=${encodeURIComponent(sampleType)}`, {
+export async function triggerDemoAnalysis(): Promise<{ analysis_id: string }> {
+  const res = await fetch(`${API_BASE}/demo`, {
     method: 'POST',
   });
   if (!res.ok) throw new Error('Failed to start demo analysis');
   return res.json();
 }
 
-export async function uploadPackageImage(file: File): Promise<{ analysis_id: string }> {
+export async function uploadPcapFile(file: File): Promise<{ analysis_id: string }> {
   const formData = new FormData();
   formData.append('file', file);
 
@@ -33,7 +33,7 @@ export async function uploadPackageImage(file: File): Promise<{ analysis_id: str
 
   const data = await res.json();
   if (!res.ok) {
-    throw data.error || { code: 'UPLOAD_FAILED', message: 'Failed to upload package image' };
+    throw data.error || { code: 'UPLOAD_FAILED', message: data.detail || 'Failed to upload PCAP file' };
   }
   return data;
 }
@@ -44,21 +44,24 @@ export async function fetchAnalysisStatus(id: string): Promise<StatusResponse> {
   return res.json();
 }
 
-export async function fetchAnalysisResult(id: string): Promise<ComplianceResult> {
+export async function fetchAnalysisResult(id: string): Promise<AnalysisResult> {
   const res = await fetch(`${API_BASE}/analyze/${id}`);
-  if (!res.ok) throw new Error('Failed to fetch compliance result');
+  if (!res.ok) throw new Error('Failed to fetch analysis result');
   return res.json();
 }
 
-export async function fetchAnalysisDeclarations(id: string): Promise<ExtractedPackageData> {
-  const res = await fetch(`${API_BASE}/analyze/${id}/declarations`);
-  if (!res.ok) throw new Error('Failed to fetch declarations');
+export async function fetchAnalysisSessions(id: string): Promise<NormalizedSession[]> {
+  const res = await fetch(`${API_BASE}/analyze/${id}/sessions`);
+  if (!res.ok) throw new Error('Failed to fetch sessions');
   return res.json();
 }
 
-export async function fetchAnalysisChecks(id: string): Promise<ComplianceCheck[]> {
-  const res = await fetch(`${API_BASE}/analyze/${id}/checks`);
-  if (!res.ok) throw new Error('Failed to fetch compliance checks');
+export async function fetchAnalysisFindings(id: string, severity?: string): Promise<Finding[]> {
+  const url = severity
+    ? `${API_BASE}/analyze/${id}/findings?severity=${encodeURIComponent(severity)}`
+    : `${API_BASE}/analyze/${id}/findings`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Failed to fetch findings');
   return res.json();
 }
 

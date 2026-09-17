@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ShieldCheck, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
+import { Lock, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import { fetchAnalysisStatus } from '../services/api';
 import type { StatusResponse, StageProgress } from '../types/api';
 
@@ -29,11 +29,11 @@ export const ProgressPage: React.FC = () => {
           }, 800);
         } else if (res.status === 'failed') {
           clearInterval(pollInterval);
-          setError('Compliance verification pipeline failed. Please try again.');
+          setError('Analysis pipeline failed. Please check capture file format.');
         }
       } catch (err: any) {
         if (!isMounted) return;
-        setError('Unable to fetch verification progress.');
+        setError('Unable to fetch analysis progress.');
       }
     }, 600);
 
@@ -47,13 +47,13 @@ export const ProgressPage: React.FC = () => {
     <div className="min-h-[calc(100vh-4rem)] bg-slate-950 text-slate-100 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 md:p-8 space-y-6 shadow-2xl text-center">
         
-        <div className="w-16 h-16 mx-auto bg-blue-600/10 text-blue-400 rounded-2xl flex items-center justify-center animate-pulse">
-          <ShieldCheck className="w-8 h-8" />
+        <div className="w-16 h-16 mx-auto bg-cyan-600/10 text-cyan-400 rounded-2xl flex items-center justify-center animate-pulse">
+          <Lock className="w-8 h-8" />
         </div>
 
         <div>
-          <h2 className="text-xl font-bold text-white">Auditing Package Label</h2>
-          <p className="text-xs text-slate-400 mt-1">Executing Rule 6 Legal Metrology Verification</p>
+          <h2 className="text-xl font-bold text-white">Analyzing Packet Capture</h2>
+          <p className="text-xs text-slate-400 mt-1">Executing Evidence-Driven Pipeline</p>
         </div>
 
         {error ? (
@@ -62,7 +62,7 @@ export const ProgressPage: React.FC = () => {
             <span>{error}</span>
           </div>
         ) : (
-          <div className="space-y-3 text-left">
+          <div className="space-y-2.5 text-left">
             {statusData?.progress.map((item: StageProgress) => {
               const isDone = item.status === 'completed';
               const isInProgress = item.status === 'in_progress';
@@ -74,7 +74,7 @@ export const ProgressPage: React.FC = () => {
                     isDone
                       ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
                       : isInProgress
-                      ? 'bg-blue-500/10 border-blue-500/30 text-blue-300'
+                      ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-300'
                       : 'bg-slate-950 border-slate-800 text-slate-500'
                   }`}
                 >
@@ -82,7 +82,7 @@ export const ProgressPage: React.FC = () => {
                     {isDone ? (
                       <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                     ) : isInProgress ? (
-                      <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+                      <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />
                     ) : (
                       <div className="w-4 h-4 rounded-full border border-slate-700" />
                     )}

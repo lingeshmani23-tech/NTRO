@@ -4,8 +4,9 @@ import { TopNav } from './components/TopNav';
 import { UploadPage } from './pages/UploadPage';
 import { ProgressPage } from './pages/ProgressPage';
 import { OverviewPage } from './pages/OverviewPage';
-import { FindingsPage } from './pages/FindingsPage';
 import { SessionsPage } from './pages/SessionsPage';
+import { FindingsPage } from './pages/FindingsPage';
+import { AIPage } from './pages/AIPage';
 import { ReportsPage } from './pages/ReportsPage';
 
 export const App: React.FC = () => {
@@ -27,8 +28,9 @@ export const App: React.FC = () => {
             />
             <Route path="/progress/:id" element={<ProgressPage />} />
             <Route path="/overview/:id" element={<OverviewPage />} />
+            <Route path="/sessions/:id" element={<SessionsPage />} />
             <Route path="/findings/:id" element={<FindingsPage />} />
-            <Route path="/raw/:id" element={<SessionsPage />} />
+            <Route path="/ai/:id" element={<AIPage />} />
             <Route path="/reports/:id" element={<ReportsPage />} />
 
             {/* Direct route fallbacks */}
