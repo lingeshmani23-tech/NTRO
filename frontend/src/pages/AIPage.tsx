@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Bot, ShieldCheck, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { Bot, ShieldCheck, CheckCircle2, AlertTriangle, Lock, Info } from 'lucide-react';
 import { fetchAnalysisResult } from '../services/api';
 import type { AnalysisResult } from '../types/api';
 
@@ -21,15 +21,15 @@ export const AIPage: React.FC = () => {
   }, [id]);
 
   if (loading) {
-    return <div className="p-8 text-center text-slate-400 text-sm">Loading AI Executive Report...</div>;
+    return <div className="min-h-[50vh] flex items-center justify-center text-slate-400 text-xs font-mono">Loading AI Executive Report...</div>;
   }
 
   if (!data || !id) {
     return (
-      <div className="p-8 text-center text-slate-400 text-sm">
-        Report not available.{' '}
-        <button onClick={() => navigate('/')} className="text-cyan-400 underline ml-2">
-          Back to Upload
+      <div className="min-h-[50vh] flex flex-col items-center justify-center p-4 text-center">
+        <h3 className="text-base font-bold text-white mb-1">Report Not Available</h3>
+        <button onClick={() => navigate('/')} className="px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg">
+          Return to Upload
         </button>
       </div>
     );
@@ -38,59 +38,63 @@ export const AIPage: React.FC = () => {
   const { ai, score } = data;
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-slate-950 text-slate-100 p-4 md:p-8 space-y-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-
-        {/* Top Header */}
-        <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="p-3 bg-cyan-600/10 text-cyan-400 rounded-xl">
-              <Bot className="w-6 h-6" />
+    <div className="max-w-4xl mx-auto space-y-6">
+      {/* Header Banner */}
+      <div className="bg-[#0F172A] border border-[#1E293B] p-5 rounded-xl shadow-xl flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 rounded-lg bg-blue-600/15 border border-blue-500/30 text-blue-400 flex items-center justify-center">
+            <Bot className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <h1 className="text-xl font-bold text-white tracking-tight">AI SECURITY ANALYST</h1>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#0B1120] text-blue-400 border border-[#1E293B]">
+                {ai.provider.toUpperCase()} ENGINE
+              </span>
             </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <h1 className="text-xl font-bold text-white">AI Security Analyst Executive Report</h1>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
-                  Provider: {ai.provider.toUpperCase()}
-                </span>
-              </div>
-              <p className="text-xs text-slate-400">Guardrailed AI Assessment for Score {score.score}/100 ({score.rating})</p>
-            </div>
+            <p className="text-xs text-slate-400">Explanation based strictly on verified cryptographic security findings</p>
           </div>
         </div>
+      </div>
 
-        {/* Executive Summary */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-3 shadow-xl">
-          <h3 className="text-xs font-bold text-cyan-400 uppercase tracking-wider">Executive Summary</h3>
-          <p className="text-sm text-slate-200 leading-relaxed">
-            {ai.executive_summary}
-          </p>
+      {/* AI Guardrail Disclaimer Banner */}
+      <div className="p-3 bg-[#0B1120] border border-[#1E293B] rounded-lg text-xs text-slate-400 flex items-center space-x-2.5">
+        <Info className="w-4 h-4 text-blue-400 flex-shrink-0" />
+        <span>
+          <strong className="text-slate-200">AI interpretation of verified evidence:</strong> The AI Security Analyst translates deterministic findings and evidence into human-readable executive summaries and prioritized remediation guidance. AI does not detect vulnerabilities independently or modify calculated security scores.
+        </span>
+      </div>
+
+      {/* Executive Summary Card */}
+      <div className="bg-[#0F172A] border border-[#1E293B] rounded-xl p-6 space-y-3 shadow-xl">
+        <h3 className="text-xs font-bold text-blue-400 uppercase tracking-wider">Executive Summary</h3>
+        <p className="text-sm text-slate-200 leading-relaxed font-sans">
+          {ai.executive_summary}
+        </p>
+      </div>
+
+      {/* Why This Matters */}
+      <div className="bg-[#0F172A] border border-[#1E293B] rounded-xl p-6 space-y-3 shadow-xl">
+        <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Why This Matters</h3>
+        <p className="text-xs text-slate-400 leading-relaxed font-sans">
+          {ai.why_it_matters}
+        </p>
+      </div>
+
+      {/* Actionable Remediation Roadmap */}
+      <div className="bg-[#0F172A] border border-[#1E293B] rounded-xl p-6 space-y-4 shadow-xl">
+        <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Actionable Remediation Action Plan</h3>
+
+        <div className="space-y-3">
+          {ai.top_priorities.map((pri, idx) => (
+            <div key={idx} className="p-4 bg-[#0B1120] rounded-lg border border-[#1E293B] flex items-start space-x-3 text-xs">
+              <span className="w-5 h-5 rounded-full bg-blue-600/20 border border-blue-500/40 text-blue-400 font-mono font-bold flex items-center justify-center flex-shrink-0 text-[11px]">
+                {idx + 1}
+              </span>
+              <span className="text-slate-200 leading-relaxed font-sans">{pri}</span>
+            </div>
+          ))}
         </div>
-
-        {/* Why It Matters */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-3 shadow-xl">
-          <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Why It Matters</h3>
-          <p className="text-xs text-slate-400 leading-relaxed">
-            {ai.why_it_matters}
-          </p>
-        </div>
-
-        {/* Priority Action Plan */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
-          <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Actionable Remediation Plan</h3>
-          
-          <div className="space-y-3">
-            {ai.top_priorities.map((pri, idx) => (
-              <div key={idx} className="p-4 bg-slate-950 rounded-xl border border-slate-800 flex items-start space-x-3 text-xs">
-                <span className="w-5 h-5 rounded-full bg-cyan-500/20 border border-cyan-400 text-cyan-400 font-bold flex items-center justify-center flex-shrink-0 text-[11px]">
-                  {idx + 1}
-                </span>
-                <span className="text-slate-200 leading-relaxed">{pri}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
       </div>
     </div>
   );

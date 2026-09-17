@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { TopNav } from './components/TopNav';
+import { AppLayout } from './components/AppLayout';
 import { UploadPage } from './pages/UploadPage';
 import { ProgressPage } from './pages/ProgressPage';
 import { OverviewPage } from './pages/OverviewPage';
@@ -18,29 +18,27 @@ export const App: React.FC = () => {
 
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-slate-950 text-slate-100 font-sans antialiased">
-        <TopNav analysisId={activeAnalysisId} onReset={handleReset} />
-        <main>
-          <Routes>
-            <Route
-              path="/"
-              element={<UploadPage onAnalysisStarted={(id) => setActiveAnalysisId(id)} />}
-            />
-            <Route path="/progress/:id" element={<ProgressPage />} />
-            <Route path="/overview/:id" element={<OverviewPage />} />
-            <Route path="/sessions/:id" element={<SessionsPage />} />
-            <Route path="/findings/:id" element={<FindingsPage />} />
-            <Route path="/ai/:id" element={<AIPage />} />
-            <Route path="/reports/:id" element={<ReportsPage />} />
+      <AppLayout analysisId={activeAnalysisId} onReset={handleReset}>
+        <Routes>
+          <Route
+            path="/"
+            element={<UploadPage onAnalysisStarted={(id) => setActiveAnalysisId(id)} />}
+          />
+          <Route path="/progress/:id" element={<ProgressPage />} />
+          <Route path="/overview/:id" element={<OverviewPage />} />
+          <Route path="/sessions/:id" element={<SessionsPage />} />
+          <Route path="/findings/:id" element={<FindingsPage />} />
+          <Route path="/ai/:id" element={<AIPage />} />
+          <Route path="/reports/:id" element={<ReportsPage />} />
 
-            {/* Direct route fallbacks */}
-            <Route path="/analysis/:id/*" element={<Navigate to="/" replace />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </main>
-      </div>
+          {/* Direct route fallbacks */}
+          <Route path="/analysis/:id/*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AppLayout>
     </BrowserRouter>
   );
 };
 
 export default App;
+

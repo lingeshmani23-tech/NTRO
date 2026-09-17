@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Network, Lock, Unlock, CheckCircle2, AlertTriangle, Shield } from 'lucide-react';
+import { Network, Lock, Unlock, CheckCircle2, AlertTriangle, Shield, ChevronRight, X, FileCode } from 'lucide-react';
 import { fetchAnalysisSessions } from '../services/api';
 import type { NormalizedSession } from '../types/api';
 
@@ -10,6 +10,7 @@ export const SessionsPage: React.FC = () => {
 
   const [sessions, setSessions] = useState<NormalizedSession[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [selectedSession, setSelectedSession] = useState<NormalizedSession | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -21,123 +22,210 @@ export const SessionsPage: React.FC = () => {
   }, [id]);
 
   if (loading) {
-    return <div className="p-8 text-center text-slate-400 text-sm">Loading Reconstructed Sessions...</div>;
+    return <div className="min-h-[50vh] flex items-center justify-center text-slate-400 text-xs font-mono">Loading Reconstructed Sessions...</div>;
   }
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-slate-950 text-slate-100 p-4 md:p-8 space-y-6">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Header Banner */}
+      <div className="bg-[#0F172A] border border-[#1E293B] p-5 rounded-xl shadow-xl flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-white tracking-tight flex items-center space-x-2">
+            <Network className="w-5 h-5 text-blue-400" />
+            <span>Reconstructed Email TCP Sessions ({sessions.length})</span>
+          </h1>
+          <p className="text-xs text-slate-400">Stream-level email cryptographic transport inspection and flow reconstruction</p>
+        </div>
+      </div>
 
-        {/* Top Header */}
-        <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-white flex items-center space-x-2">
-              <Network className="w-5 h-5 text-cyan-400" />
-              <span>Reconstructed TCP Email Sessions ({sessions.length})</span>
-            </h1>
-            <p className="text-xs text-slate-400">Stream-Level Email Cryptographic Transport Inspection</p>
+      {/* Main Table & Detail Split Workspace */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Session Table */}
+        <div className="lg:col-span-2 bg-[#0F172A] border border-[#1E293B] rounded-xl p-5 shadow-xl space-y-4">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-[#1E293B] text-slate-400 font-semibold uppercase bg-[#0B1120]">
+                  <th className="py-2.5 px-3">Session ID</th>
+                  <th className="py-2.5 px-3">Protocol</th>
+                  <th className="py-2.5 px-3">Source → Destination</th>
+                  <th className="py-2.5 px-3">Transport Security</th>
+                  <th className="py-2.5 px-3">Cert Status</th>
+                  <th className="py-2.5 px-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#1E293B]">
+                {sessions.map((s: NormalizedSession) => {
+                  const isSelected = selectedSession?.session_id === s.session_id;
+
+                  return (
+                    <tr
+                      key={s.session_id}
+                      onClick={() => setSelectedSession(s)}
+                      className={`cursor-pointer transition-colors ${
+                        isSelected ? 'bg-[#172033] text-white' : 'hover:bg-[#172033]/50 text-slate-200'
+                      }`}
+                    >
+                      <td className="py-3 px-3 font-mono font-bold text-blue-400">{s.session_id}</td>
+                      <td className="py-3 px-3 font-semibold">{s.protocol}</td>
+                      <td className="py-3 px-3 font-mono text-[11px] text-slate-300">
+                        {s.source_ip}:{s.source_port} → {s.destination_ip}:{s.destination_port}
+                      </td>
+                      <td className="py-3 px-3">
+                        {s.encryption ? (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 inline-flex items-center space-x-1">
+                            <Lock className="w-3 h-3" />
+                            <span>{s.tls_version || 'Encrypted'}</span>
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-red-500/10 text-red-400 border border-red-500/20 inline-flex items-center space-x-1">
+                            <Unlock className="w-3 h-3" />
+                            <span>Plaintext</span>
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-3 text-slate-400 font-mono text-[11px]">
+                        {s.certificate?.present ? (
+                          <span className="text-emerald-400 font-semibold">
+                            {s.certificate.expired ? 'Expired' : 'Presented'}
+                          </span>
+                        ) : (
+                          <span className="text-slate-500">N/A</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-3 text-right">
+                        <button className="text-blue-400 hover:text-blue-300 font-semibold text-[11px] inline-flex items-center space-x-1">
+                          <span>Inspect</span>
+                          <ChevronRight className="w-3 h-3" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
 
-        {/* Sessions Grid */}
-        <div className="space-y-4">
-          {sessions.map((session: NormalizedSession) => (
-            <div
-              key={session.session_id}
-              className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-4"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <span className="font-mono font-bold text-cyan-400 text-sm">{session.session_id}</span>
-                  <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-slate-800 text-slate-200 border border-slate-700">
-                    {session.protocol} (Port {session.destination_port})
-                  </span>
-                  <span className="text-xs text-slate-400 font-mono">
-                    {session.source_ip}:{session.source_port} → {session.destination_ip}:{session.destination_port}
+        {/* Session Detail Drawer / Panel */}
+        <div className="lg:col-span-1">
+          {selectedSession ? (
+            <div className="bg-[#0F172A] border border-[#1E293B] rounded-xl p-5 space-y-5 sticky top-20 shadow-xl">
+              <div className="flex items-center justify-between border-b border-[#1E293B] pb-3">
+                <div className="flex items-center space-x-2">
+                  <span className="font-mono text-sm font-bold text-blue-400">{selectedSession.session_id}</span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-[#0B1120] text-slate-300 border border-[#1E293B]">
+                    {selectedSession.protocol}
                   </span>
                 </div>
+                <button
+                  onClick={() => setSelectedSession(null)}
+                  className="text-slate-400 hover:text-white p-1"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
 
-                <div>
-                  {session.encryption ? (
-                    <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1">
-                      <Lock className="w-3.5 h-3.5" />
-                      <span>Encrypted ({session.tls_version || 'TLS'})</span>
+              {/* Endpoint Specs */}
+              <div className="space-y-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Flow Endpoints & Connection
+                </span>
+                <div className="bg-[#0B1120] p-3 rounded-lg border border-[#1E293B] font-mono text-[11px] space-y-1">
+                  <div className="flex justify-between text-slate-400">
+                    <span>Source IP:</span>
+                    <span className="text-white">{selectedSession.source_ip}:{selectedSession.source_port}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Destination Host/IP:</span>
+                    <span className="text-white">{selectedSession.destination_ip}:{selectedSession.destination_port}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Target Port:</span>
+                    <span className="text-blue-400 font-bold">{selectedSession.destination_port}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Cryptographic Parameters */}
+              <div className="space-y-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Cryptographic Session Parameters
+                </span>
+                <div className="bg-[#0B1120] p-3 rounded-lg border border-[#1E293B] font-mono text-[11px] space-y-1.5">
+                  <div className="flex justify-between text-slate-400">
+                    <span>Encryption State:</span>
+                    <span className={selectedSession.encryption ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}>
+                      {selectedSession.encryption ? 'Encrypted Stream' : 'Plaintext Stream'}
                     </span>
-                  ) : (
-                    <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30 flex items-center space-x-1">
-                      <Unlock className="w-3.5 h-3.5" />
-                      <span>Plaintext Unencrypted</span>
-                    </span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>TLS Version:</span>
+                    <span className="text-blue-400 font-bold">{selectedSession.tls_version || 'None'}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Cipher Suite:</span>
+                    <span className="text-slate-200 truncate max-w-[150px]">{selectedSession.cipher_suite || 'None'}</span>
+                  </div>
+                  {selectedSession.starttls && (
+                    <div className="flex justify-between text-slate-400 pt-1 border-t border-[#1E293B]">
+                      <span>STARTTLS Command:</span>
+                      <span className="text-slate-200">
+                        {selectedSession.starttls.offered ? 'Offered' : 'Not Offered'} • {selectedSession.starttls.accepted ? 'Accepted' : 'N/A'}
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>
 
-              {/* Session Meta Specs */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                
-                {/* Cryptographic Parameters */}
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1.5">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                    TLS & Cipher Details
-                  </span>
-                  <div className="text-slate-300">
-                    <strong>TLS Version:</strong> {session.tls_version || 'None'}
-                  </div>
-                  <div className="text-slate-300 truncate">
-                    <strong>Cipher Suite:</strong> {session.cipher_suite || 'None'}
-                  </div>
-                  {session.starttls && (
-                    <div className="text-slate-300">
-                      <strong>STARTTLS:</strong> {session.starttls.offered ? 'Offered' : 'Not Offered'} • {session.starttls.accepted ? 'Accepted' : 'Not Issued'}
-                    </div>
-                  )}
-                </div>
-
-                {/* X.509 Certificate Details */}
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1.5">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                    X.509 Server Certificate
-                  </span>
-                  {session.certificate?.present ? (
+              {/* X.509 Certificate Evidence */}
+              <div className="space-y-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  X.509 Server Certificate Evidence
+                </span>
+                <div className="bg-[#0B1120] p-3 rounded-lg border border-[#1E293B] font-mono text-[11px] space-y-1">
+                  {selectedSession.certificate?.present ? (
                     <>
-                      <div className="text-slate-300">
-                        <strong>Subject CN:</strong> {session.certificate.subject_cn || 'Unknown'}
+                      <div className="flex justify-between text-slate-400">
+                        <span>Subject CN:</span>
+                        <span className="text-slate-200">{selectedSession.certificate.subject_cn || 'Unknown'}</span>
                       </div>
-                      <div className="text-slate-300">
-                        <strong>RSA Key Size:</strong> {session.certificate.key_size ? `${session.certificate.key_size} bits` : 'Unknown'}
+                      <div className="flex justify-between text-slate-400">
+                        <span>RSA Key Size:</span>
+                        <span className="text-slate-200">{selectedSession.certificate.key_size ? `${selectedSession.certificate.key_size} bits` : 'Unknown'}</span>
                       </div>
-                      <div className="text-slate-300">
-                        <strong>Signature:</strong> {session.certificate.signature_algorithm || 'Unknown'}
+                      <div className="flex justify-between text-slate-400">
+                        <span>Signature Algorithm:</span>
+                        <span className="text-slate-200">{selectedSession.certificate.signature_algorithm || 'Unknown'}</span>
                       </div>
                     </>
                   ) : (
-                    <div className="text-slate-500 italic">No certificate presented</div>
+                    <div className="text-slate-500 italic">No X.509 certificate observable in capture</div>
                   )}
                 </div>
+              </div>
 
-                {/* Evidence Packet Items */}
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1.5">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                    Observed Packet Evidence ({session.evidence.length})
-                  </span>
-                  {session.evidence.length > 0 ? (
-                    <div className="space-y-1 font-mono text-[11px]">
-                      {session.evidence.map((ev, idx) => (
-                        <div key={idx} className="text-slate-300 truncate">
-                          Pkt #{ev.packet_number || ev.frame_number || 'N/A'}: <span className="text-cyan-400">{ev.field}</span> = {ev.observed_value}
-                        </div>
-                      ))}
+              {/* Evidence Items */}
+              <div className="space-y-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Recorded Frame Evidence ({selectedSession.evidence.length})
+                </span>
+                <div className="bg-[#0B1120] p-3 rounded-lg border border-[#1E293B] font-mono text-[11px] space-y-1 max-h-40 overflow-y-auto">
+                  {selectedSession.evidence.map((ev, idx) => (
+                    <div key={idx} className="text-slate-300 border-b border-[#1E293B]/60 pb-1 last:border-b-0">
+                      <span className="text-blue-400">Pkt #{ev.packet_number || ev.frame_number || 'N/A'}</span>: {ev.field} = <span className="text-amber-300">{ev.observed_value}</span>
                     </div>
-                  ) : (
-                    <div className="text-slate-500 italic">No packet evidence recorded</div>
-                  )}
+                  ))}
                 </div>
-
               </div>
             </div>
-          ))}
+          ) : (
+            <div className="bg-[#0F172A] border border-[#1E293B] rounded-xl p-8 text-center text-slate-500 text-xs">
+              <Network className="w-8 h-8 mx-auto mb-2 text-slate-600" />
+              <span>Select a reconstructed session row from the table to view flow parameters and evidence packets.</span>
+            </div>
+          )}
         </div>
-
       </div>
     </div>
   );
