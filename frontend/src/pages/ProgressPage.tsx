@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Lock, CheckCircle2, Loader2, AlertCircle, Shield, ArrowRight } from 'lucide-react';
+import { Lock, CheckCircle2, Loader2, AlertCircle, Shield } from 'lucide-react';
 import { fetchAnalysisStatus } from '../services/api';
 import type { StatusResponse, StageProgress } from '../types/api';
 
@@ -58,30 +58,30 @@ export const ProgressPage: React.FC = () => {
     <div className="max-w-3xl mx-auto space-y-6 py-6">
       {/* Header */}
       <div className="text-center space-y-2">
-        <div className="inline-flex items-center space-x-2 px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-400 text-xs font-semibold">
-          <Shield className="w-3.5 h-3.5" />
+        <div className="inline-flex items-center space-x-2 px-3 py-1 bg-[#70FFD2]/10 border border-[#70FFD2]/30 rounded-full text-[#70FFD2] text-xs font-semibold">
+          <Shield className="w-3.5 h-3.5 text-[#70FFD2]" />
           <span>Live Analysis Pipeline</span>
         </div>
-        <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
+        <h1 className="text-2xl md:text-3xl font-bold text-[#F8FAFC] tracking-tight">
           Processing Capture Stream
         </h1>
-        <p className="text-xs text-slate-400 font-mono">
+        <p className="text-xs text-[#94A3B8] font-mono">
           Analysis ID: {id}
         </p>
       </div>
 
       {/* Main Pipeline Card */}
-      <div className="bg-[#0F172A] border border-[#1E293B] rounded-xl p-6 shadow-xl space-y-6">
+      <div className="bg-[#0F172A] border border-[#263449] rounded-xl p-6 shadow-xl space-y-6">
         {error ? (
-          <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-xs flex flex-col items-center space-y-3 text-center">
-            <AlertCircle className="w-8 h-8 text-red-400" />
+          <div className="p-4 bg-[#FF9137]/15 border border-[#FF9137]/30 rounded-lg text-[#FF9137] text-xs flex flex-col items-center space-y-3 text-center font-semibold">
+            <AlertCircle className="w-8 h-8 text-[#FF9137]" />
             <div>
-              <h4 className="font-bold text-sm text-white mb-1">Analysis Could Not Be Completed</h4>
-              <p className="text-slate-400">{error}</p>
+              <h4 className="font-bold text-sm text-[#F8FAFC] mb-1">Analysis Could Not Be Completed</h4>
+              <p className="text-[#94A3B8] font-normal">{error}</p>
             </div>
             <button
               onClick={() => navigate('/')}
-              className="mt-2 px-4 py-2 bg-[#172033] hover:bg-[#1E293B] text-slate-200 border border-[#263449] rounded-lg text-xs font-semibold"
+              className="mt-2 px-4 py-2 bg-[#172033] hover:bg-[#1E293B] text-[#F8FAFC] border border-[#263449] rounded-lg text-xs font-semibold"
             >
               Return to Upload
             </button>
@@ -99,30 +99,30 @@ export const ProgressPage: React.FC = () => {
                   key={item.stage}
                   className={`p-3.5 rounded-lg border transition-all flex items-center justify-between text-xs ${
                     isDone
-                      ? 'bg-[#0B1120] border-emerald-500/30 text-emerald-300'
+                      ? 'bg-[#0B1120] border-[#70FFD2]/30 text-[#70FFD2]'
                       : isInProgress
-                      ? 'bg-blue-600/10 border-blue-500/40 text-blue-300'
+                      ? 'bg-[#FFFC8C]/10 border-[#FFFC8C]/40 text-[#FFFC8C]'
                       : isFailed
-                      ? 'bg-red-500/10 border-red-500/30 text-red-400'
-                      : 'bg-[#0B1120]/40 border-[#1E293B] text-slate-500'
+                      ? 'bg-[#FF9137]/15 border-[#FF9137]/30 text-[#FF9137]'
+                      : 'bg-[#0B1120]/40 border-[#263449] text-[#64748B]'
                   }`}
                 >
                   <div className="flex items-center space-x-3">
                     {isDone ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                      <CheckCircle2 className="w-4 h-4 text-[#70FFD2] flex-shrink-0" />
                     ) : isInProgress ? (
-                      <Loader2 className="w-4 h-4 text-blue-400 animate-spin flex-shrink-0" />
+                      <Loader2 className="w-4 h-4 text-[#FFFC8C] animate-spin flex-shrink-0" />
                     ) : isFailed ? (
-                      <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                      <AlertCircle className="w-4 h-4 text-[#FF9137] flex-shrink-0" />
                     ) : (
-                      <div className="w-4 h-4 rounded-full border border-slate-700 flex-shrink-0" />
+                      <div className="w-4 h-4 rounded-full border border-[#64748B] flex-shrink-0" />
                     )}
 
                     <div>
-                      <span className="font-mono font-semibold tracking-tight block text-slate-200">
+                      <span className="font-mono font-semibold tracking-tight block text-[#F8FAFC]">
                         {label}
                       </span>
-                      <span className="text-[11px] text-slate-400 block mt-0.5">
+                      <span className="text-[11px] text-[#94A3B8] block mt-0.5">
                         {item.detail}
                       </span>
                     </div>
@@ -131,12 +131,12 @@ export const ProgressPage: React.FC = () => {
                   <span
                     className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase ${
                       isDone
-                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        ? 'bg-[#70FFD2]/15 text-[#70FFD2] border border-[#70FFD2]/30'
                         : isInProgress
-                        ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                        ? 'bg-[#FFFC8C]/15 text-[#FFFC8C] border border-[#FFFC8C]/30'
                         : isFailed
-                        ? 'bg-red-500/10 text-red-400 border border-red-500/20'
-                        : 'bg-slate-800 text-slate-500'
+                        ? 'bg-[#FF9137]/15 text-[#FF9137] border border-[#FF9137]/30'
+                        : 'bg-[#172033] text-[#64748B]'
                     }`}
                   >
                     {item.status}
@@ -147,7 +147,7 @@ export const ProgressPage: React.FC = () => {
           </div>
         )}
 
-        <div className="pt-4 border-t border-[#1E293B] flex items-center justify-between text-[11px] text-slate-500">
+        <div className="pt-4 border-t border-[#263449] flex items-center justify-between text-[11px] text-[#64748B]">
           <span>Deterministic Verification Pipeline</span>
           <span className="font-mono">TShark Stream Active</span>
         </div>

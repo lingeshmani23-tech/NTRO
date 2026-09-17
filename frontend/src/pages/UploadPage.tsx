@@ -69,40 +69,40 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onAnalysisStarted }) => 
     <div className="max-w-4xl mx-auto space-y-8 py-4">
       {/* Hero Section */}
       <div className="text-center space-y-3">
-        <div className="inline-flex items-center space-x-2 px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-400 text-xs font-semibold">
-          <Shield className="w-3.5 h-3.5" />
+        <div className="inline-flex items-center space-x-2 px-3 py-1 bg-[#70FFD2]/10 border border-[#70FFD2]/30 rounded-full text-[#70FFD2] text-xs font-semibold">
+          <Shield className="w-3.5 h-3.5 text-[#70FFD2]" />
           <span>Passive Email Security Assessment</span>
         </div>
 
-        <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight">
+        <h1 className="text-3xl md:text-4xl font-extrabold text-[#F8FAFC] tracking-tight">
           SECUREMAILSCOPE
         </h1>
 
-        <p className="text-slate-400 max-w-2xl mx-auto text-sm leading-relaxed">
+        <p className="text-[#94A3B8] max-w-2xl mx-auto text-sm leading-relaxed">
           Analyze email traffic captures and identify cryptographic security issues using evidence extracted directly from the PCAP.
         </p>
       </div>
 
       {/* Protocol Identifiers Bar */}
-      <div className="flex flex-wrap items-center justify-center gap-3 text-xs font-semibold text-slate-400">
-        <div className="flex items-center space-x-2 px-3 py-1.5 bg-[#0F172A] rounded-lg border border-[#1E293B]">
-          <span className="w-2 h-2 rounded-full bg-blue-500" />
+      <div className="flex flex-wrap items-center justify-center gap-3 text-xs font-semibold text-[#94A3B8]">
+        <div className="flex items-center space-x-2 px-3 py-1.5 bg-[#0F172A] rounded-lg border border-[#263449]">
+          <span className="w-2 h-2 rounded-full bg-[#70FFD2]" />
           <span>SMTP (Ports 25, 465, 587)</span>
         </div>
-        <div className="flex items-center space-x-2 px-3 py-1.5 bg-[#0F172A] rounded-lg border border-[#1E293B]">
-          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+        <div className="flex items-center space-x-2 px-3 py-1.5 bg-[#0F172A] rounded-lg border border-[#263449]">
+          <span className="w-2 h-2 rounded-full bg-[#FFFC8C]" />
           <span>IMAP (Ports 143, 993)</span>
         </div>
-        <div className="flex items-center space-x-2 px-3 py-1.5 bg-[#0F172A] rounded-lg border border-[#1E293B]">
-          <span className="w-2 h-2 rounded-full bg-amber-500" />
+        <div className="flex items-center space-x-2 px-3 py-1.5 bg-[#0F172A] rounded-lg border border-[#263449]">
+          <span className="w-2 h-2 rounded-full bg-[#FFCC4D]" />
           <span>POP3 (Ports 110, 995)</span>
         </div>
       </div>
 
       {/* Main Upload Dropzone Card */}
-      <div className="bg-[#0F172A] border border-[#1E293B] rounded-xl p-6 md:p-8 shadow-xl">
+      <div className="bg-[#0F172A] border border-[#263449] rounded-xl p-6 md:p-8 shadow-xl">
         {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-xs flex items-center space-x-3">
+          <div className="mb-6 p-4 bg-[#FF9137]/15 border border-[#FF9137]/30 rounded-lg text-[#FF9137] text-xs flex items-center space-x-3 font-semibold">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{error}</span>
           </div>
@@ -113,7 +113,7 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onAnalysisStarted }) => 
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed border-[#263449] hover:border-blue-500 bg-[#0B1120]/60 hover:bg-[#0B1120] rounded-xl p-10 text-center cursor-pointer transition-all group"
+            className="border-2 border-dashed border-[#263449] hover:border-[#70FFD2] bg-[#0B1120]/70 hover:bg-[#0B1120] rounded-xl p-10 text-center cursor-pointer transition-all group"
           >
             <input
               type="file"
@@ -122,43 +122,43 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onAnalysisStarted }) => 
               accept=".pcap,.pcapng"
               className="hidden"
             />
-            <div className="w-14 h-14 mx-auto bg-blue-600/10 text-blue-400 rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform border border-blue-500/20">
+            <div className="w-14 h-14 mx-auto bg-[#70FFD2]/10 text-[#70FFD2] rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform border border-[#70FFD2]/20">
               <Upload className="w-7 h-7" />
             </div>
-            <h3 className="text-base font-semibold text-white mb-1">
+            <h3 className="text-base font-semibold text-[#F8FAFC] mb-1">
               Drop PCAP or PCAPNG capture file here
             </h3>
-            <p className="text-xs text-slate-400 mb-4">
-              Supported: <span className="font-mono text-slate-300">.pcap</span> • <span className="font-mono text-slate-300">.pcapng</span> (Maximum file size: 100MB)
+            <p className="text-xs text-[#94A3B8] mb-4">
+              Supported: <span className="font-mono text-[#F8FAFC]">.pcap</span> • <span className="font-mono text-[#F8FAFC]">.pcapng</span> (Maximum file size: 100MB)
             </p>
-            <div className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm">
+            <div className="inline-flex items-center space-x-2 px-4 py-2 bg-[#70FFD2] hover:bg-[#5CE6BD] text-[#0B1120] rounded-lg text-xs font-bold transition-colors shadow-sm">
               <FileSearch className="w-4 h-4" />
               <span>Browse Files</span>
             </div>
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="bg-[#0B1120] rounded-lg p-4 border border-[#1E293B] flex items-center justify-between">
+            <div className="bg-[#0B1120] rounded-lg p-4 border border-[#263449] flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="p-2.5 bg-blue-600/15 text-blue-400 rounded-lg border border-blue-500/30">
+                <div className="p-2.5 bg-[#70FFD2]/15 text-[#70FFD2] rounded-lg border border-[#70FFD2]/30">
                   <FileCode className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center space-x-2">
-                    <h4 className="font-semibold text-white text-xs">{selectedFile.name}</h4>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1">
+                    <h4 className="font-semibold text-[#F8FAFC] text-xs">{selectedFile.name}</h4>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-[#70FFD2]/15 text-[#70FFD2] border border-[#70FFD2]/30 flex items-center space-x-1">
                       <CheckCircle2 className="w-3 h-3" />
                       <span>Ready for Analysis</span>
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                  <p className="text-[11px] text-[#94A3B8] font-mono mt-0.5">
                     {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB • {selectedFile.type || 'PCAP Packet Stream'}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedFile(null)}
-                className="text-xs text-slate-400 hover:text-white underline"
+                className="text-xs text-[#94A3B8] hover:text-[#F8FAFC] underline"
               >
                 Change File
               </button>
@@ -167,7 +167,7 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onAnalysisStarted }) => 
             <button
               onClick={handleUploadSubmit}
               disabled={loading}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg text-xs transition-colors flex items-center justify-center space-x-2 shadow-sm disabled:opacity-50"
+              className="w-full py-3 bg-[#70FFD2] hover:bg-[#5CE6BD] text-[#0B1120] font-bold rounded-lg text-xs transition-colors flex items-center justify-center space-x-2 shadow-sm disabled:opacity-50"
             >
               {loading ? (
                 <span>Parsing & Running TShark Analysis Pipeline...</span>
@@ -181,9 +181,9 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onAnalysisStarted }) => 
           </div>
         )}
 
-        <div className="mt-6 pt-4 border-t border-[#1E293B] flex items-center justify-between text-[11px] text-slate-500">
+        <div className="mt-6 pt-4 border-t border-[#263449] flex items-center justify-between text-[11px] text-[#64748B]">
           <span className="flex items-center space-x-1.5">
-            <Lock className="w-3.5 h-3.5 text-slate-400" />
+            <Lock className="w-3.5 h-3.5 text-[#70FFD2]" />
             <span>Passive Analysis • Zero Packet Injection • 100% Deterministic Rule Engine</span>
           </span>
           <span className="font-mono">TShark Pipeline Active</span>
@@ -191,13 +191,13 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onAnalysisStarted }) => 
       </div>
 
       {/* Preset Demo Mode Launcher */}
-      <div className="bg-[#0F172A]/70 border border-[#1E293B] rounded-xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="bg-[#0F172A]/80 border border-[#263449] rounded-xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
-          <div className="flex items-center space-x-2 text-blue-400 font-semibold text-xs mb-1">
+          <div className="flex items-center space-x-2 text-[#FFFC8C] font-semibold text-xs mb-1">
             <Sparkles className="w-4 h-4" />
             <span>Instant Demo Capture (7 Sessions)</span>
           </div>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-[#94A3B8]">
             Run an instant security assessment over 7 pre-analyzed email streams featuring legacy TLS 1.0, weak ciphers, and expired certificates.
           </p>
         </div>
@@ -205,9 +205,9 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onAnalysisStarted }) => 
         <button
           onClick={handleRunDemo}
           disabled={loading}
-          className="px-4 py-2 bg-[#172033] hover:bg-[#1E293B] text-slate-200 border border-[#263449] rounded-lg text-xs font-semibold transition-colors flex items-center space-x-2 whitespace-nowrap"
+          className="px-4 py-2 bg-[#172033] hover:bg-[#1E293B] text-[#F8FAFC] border border-[#263449] rounded-lg text-xs font-semibold transition-colors flex items-center space-x-2 whitespace-nowrap"
         >
-          <Play className="w-3.5 h-3.5 text-blue-400 fill-blue-400" />
+          <Play className="w-3.5 h-3.5 text-[#70FFD2] fill-[#70FFD2]" />
           <span>Load Demo Capture</span>
         </button>
       </div>
