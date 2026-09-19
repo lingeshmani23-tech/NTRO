@@ -185,10 +185,10 @@ export const OverviewPage: React.FC = () => {
             <div className="w-full mt-3 p-3 bg-[#0B1120] border border-[#263449] rounded-lg text-left text-[11px] space-y-1">
               <div className="font-semibold text-[#F8FAFC]">Deterministic Score Formula:</div>
               <div className="text-[#94A3B8] font-mono">Base score = 100</div>
-              {score.deductions?.map((d, i) => (
+              {(score.ledger || []).map((item, i) => (
                 <div key={i} className="flex justify-between text-[#94A3B8] font-mono">
-                  <span>- {d.rule_id} ({d.severity})</span>
-                  <span className="text-[#FF9137]">-{d.points}</span>
+                  <span>- {item.rule_id} ({item.severity})</span>
+                  <span className="text-[#FF9137]">-{item.penalty || item.deduction || 0}</span>
                 </div>
               ))}
               <div className="pt-1 border-t border-[#263449] flex justify-between font-bold text-[#F8FAFC] font-mono">

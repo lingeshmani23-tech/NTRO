@@ -88,33 +88,35 @@ def unencrypted_email_session(session: NormalizedSession) -> Optional[Tuple[str,
 
 
 def starttls_offered_not_issued(session: NormalizedSession) -> Optional[Tuple[str, int, Any]]:
-    if session.starttls and session.starttls.offered is True and session.starttls.issued is False:
+    st = session.starttls
+    if st and getattr(st, 'offered', False) is True and getattr(st, 'accepted', False) is False and getattr(st, 'issued', False) is False:
         pkt = session.first_packet
         for item in session.evidence:
             if "starttls" in item.field.lower() or "smtp" in item.field.lower():
-                pkt = item.packet_number
+                pkt = item.packet_number or item.frame_number or session.first_packet
                 break
         return ("starttls.issued", pkt, "False")
     return None
 
 
 def starttls_downgrade_detected(session: NormalizedSession) -> Optional[Tuple[str, int, Any]]:
-    if session.starttls and session.starttls.downgrade_suspected is True:
+    st = session.starttls
+    if st and (getattr(st, 'downgrade_indicator', False) is True or getattr(st, 'downgrade_suspected', False) is True):
         pkt = session.first_packet
         for item in session.evidence:
             if "starttls" in item.field.lower() or "downgrade" in item.field.lower():
-                pkt = item.packet_number
+                pkt = item.packet_number or item.frame_number or session.first_packet
                 break
-        return ("starttls.downgrade_suspected", pkt, "True")
+        return ("starttls.downgrade_indicator", pkt, "True")
     return None
 
 
 def cert_expired(session: NormalizedSession) -> Optional[Tuple[str, int, Any]]:
-    if session.certificate and session.certificate.expired is True:
+    if session.certificate and getattr(session.certificate, 'expired', False) is True:
         pkt = session.first_packet
         for item in session.evidence:
             if item.field == "x509af.notAfter":
-                pkt = item.packet_number
+                pkt = item.packet_number or item.frame_number or session.first_packet
                 break
         return ("x509af.notAfter", pkt, f"Expired ({session.certificate.not_after})")
     return None
@@ -126,20 +128,20 @@ def cert_not_yet_valid(session: NormalizedSession) -> Optional[Tuple[str, int, A
             pkt = session.first_packet
             for item in session.evidence:
                 if item.field == "x509af.notBefore":
-                    pkt = item.packet_number
+                    pkt = item.packet_number or item.frame_number or session.first_packet
                     break
             return ("x509af.notBefore", pkt, f"Not yet valid ({session.certificate.not_before})")
     return None
 
 
 def cert_hostname_mismatch(session: NormalizedSession) -> Optional[Tuple[str, int, Any]]:
-    if session.certificate and session.certificate.hostname_valid is False:
+    if session.certificate and (getattr(session.certificate, 'hostname_mismatch', False) is True or getattr(session.certificate, 'hostname_valid', True) is False):
         pkt = session.first_packet
         for item in session.evidence:
             if "hostname" in item.field.lower() or "dnsname" in item.field.lower():
-                pkt = item.packet_number
+                pkt = item.packet_number or item.frame_number or session.first_packet
                 break
-        return ("certificate.hostname_valid", pkt, f"Mismatch (CN={session.certificate.subject_cn})")
+        return ("certificate.hostname_mismatch", pkt, f"Mismatch (CN={session.certificate.subject_cn})")
     return None
 
 
@@ -148,7 +150,7 @@ def cert_weak_key_size(session: NormalizedSession) -> Optional[Tuple[str, int, A
         pkt = session.first_packet
         for item in session.evidence:
             if item.field == "pkcs1.modulus":
-                pkt = item.packet_number
+                pkt = item.packet_number or item.frame_number or session.first_packet
                 break
         return ("pkcs1.modulus", pkt, f"{session.certificate.key_size} bits")
     return None
@@ -161,16 +163,17 @@ def cert_weak_signature_algorithm(session: NormalizedSession) -> Optional[Tuple[
             pkt = session.first_packet
             for item in session.evidence:
                 if item.field == "x509af.algorithm.id":
-                    pkt = item.packet_number
+                    pkt = item.packet_number or item.frame_number or session.first_packet
                     break
             return ("x509af.algorithm.id", pkt, session.certificate.signature_algorithm)
     return None
 
 
 def auth_plaintext_exposed(session: NormalizedSession) -> Optional[Tuple[str, int, Any]]:
-    if session.authentication and session.authentication.plaintext_exposed is True:
-        pkt = session.authentication.evidence_packet or session.first_packet
-        mech = session.authentication.mechanism or "Plaintext Credentials"
+    auth = session.auth_summary or getattr(session, 'authentication', None)
+    if auth and (getattr(auth, 'unencrypted_exposure', False) is True or getattr(auth, 'plaintext_exposed', False) is True):
+        pkt = getattr(auth, 'evidence_packet', None) or session.first_packet
+        mech = getattr(auth, 'mechanism', None) or "Plaintext Credentials"
         return ("smtp.auth.username", pkt, f"Exposed credentials via {mech}")
     return None
 
