@@ -23,8 +23,11 @@ from backend.services.database.db import init_db
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize SQLite database on startup
-    init_db()
+    # Initialize SQLite database on startup safely
+    try:
+        init_db()
+    except Exception as e:
+        print(f"Startup notice: SQLite DB init warning: {e}")
     yield
 
 

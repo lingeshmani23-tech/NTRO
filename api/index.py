@@ -13,5 +13,7 @@ if str(backend_dir) not in sys.path:
 
 from backend.main import app
 
-# Export app for Vercel Serverless Functions
-__all__ = ["app"]
+# Export both app and handler for Vercel Serverless Functions
+handler = app
+
+__all__ = ["app", "handler"]
