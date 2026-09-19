@@ -53,3 +53,8 @@ securemailscope.db
 Thumbs.db
 .vscode/
 .idea/
+
+# Test Artifacts
+*.pcap
+*.pdf
+scratch/

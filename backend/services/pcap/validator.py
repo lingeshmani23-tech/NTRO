@@ -28,13 +28,7 @@ class FileTooLargeError(Exception):
 def detect_tshark() -> Dict[str, Any]:
     """
     Detects TShark executable across Windows, Linux, and macOS.
-    Returns:
-    {
-        "available": bool,
-        "path": Optional[str],
-        "version": Optional[str],
-        "error": Optional[str]
-    }
+    Returns TShark info or Native PCAP Parser fallback status.
     """
     candidate_paths = []
 
@@ -91,21 +85,20 @@ def detect_tshark() -> Dict[str, Any]:
         except Exception:
             continue
 
+    # Fallback: Native pure-Python PCAP engine available
     return {
-        "available": False,
-        "path": None,
-        "version": None,
-        "error": (
-            "TShark was not found in PATH or standard installation locations "
-            "(e.g., C:\\Program Files\\Wireshark\\tshark.exe, /usr/bin/tshark). "
-            "Please install Wireshark or set TSHARK_PATH."
-        ),
+        "available": True,
+        "path": "native_pcap_engine",
+        "version": "SecureMailScope Native PCAP Engine 1.0 (Python)",
+        "error": None,
     }
 
 
 def resolve_tshark_path() -> Optional[str]:
     info = detect_tshark()
-    return info["path"] if info["available"] else None
+    if info["available"] and info["path"] != "native_pcap_engine":
+        return info["path"]
+    return None
 
 
 def get_tshark_version() -> Optional[str]:
@@ -127,51 +120,27 @@ def validate_pcap_file(filepath: str, max_upload_mb: int = 100) -> int:
         raise FileTooLargeError(f"File size ({size_mb:.1f} MB) exceeds maximum allowed ({max_upload_mb} MB)")
 
     tshark_info = detect_tshark()
-    if not tshark_info["available"] or not tshark_info["path"]:
-        raise TSharkUnavailableError("TShark binary not found on host environment.")
+    if not tshark_info["available"]:
+        raise TSharkUnavailableError("TShark binary or PCAP parser not found on host environment.")
 
-    tshark_bin = tshark_info["path"]
+    tshark_bin = resolve_tshark_path()
 
-    # Readability pass
-    try:
-        proc = subprocess.run(
-            [tshark_bin, "-r", str(path_obj), "-c", "1"],
-            capture_output=True,
-            text=True,
-            timeout=10,
-            check=False,
-        )
-        if proc.returncode != 0:
-            raise CorruptPCAPError(f"TShark failed to read capture file: {proc.stderr}")
-    except subprocess.TimeoutExpired:
-        raise CorruptPCAPError("TShark timed out while reading capture file header")
-
-    # Packet count check via capinfos or tshark
-    packet_count = 0
-    capinfos_bin = shutil.which("capinfos")
-    if not capinfos_bin and Path(r"C:\Program Files\Wireshark\capinfos.exe").is_file():
-        capinfos_bin = r"C:\Program Files\Wireshark\capinfos.exe"
-
-    if capinfos_bin:
+    if tshark_bin:
+        # Readability pass via TShark
         try:
-            cproc = subprocess.run(
-                [capinfos_bin, "-c", "-M", str(path_obj)],
+            proc = subprocess.run(
+                [tshark_bin, "-r", str(path_obj), "-c", "1"],
                 capture_output=True,
                 text=True,
                 timeout=10,
                 check=False,
             )
-            for line in cproc.stdout.splitlines():
-                if "Number of packets" in line:
-                    parts = line.split(":")
-                    if len(parts) > 1:
-                        packet_count = int(parts[1].strip())
-                        break
-        except Exception:
-            pass
+            if proc.returncode != 0:
+                raise CorruptPCAPError(f"TShark failed to read capture file: {proc.stderr}")
+        except subprocess.TimeoutExpired:
+            raise CorruptPCAPError("TShark timed out while reading capture file header")
 
-    if packet_count == 0:
-        # Fallback packet count
+        packet_count = 0
         try:
             fproc = subprocess.run(
                 [tshark_bin, "-r", str(path_obj), "-T", "fields", "-e", "frame.number"],
@@ -184,8 +153,17 @@ def validate_pcap_file(filepath: str, max_upload_mb: int = 100) -> int:
         except Exception:
             pass
 
-    if packet_count == 0:
-        raise EmptyPCAPError("Capture file contains 0 packets.")
+        if packet_count > 0:
+            return packet_count
 
-    return packet_count
-
+    # Pure Python PCAP validation & packet count
+    try:
+        from backend.services.pcap.parser import parse_pcap_native
+        pkts = parse_pcap_native(str(path_obj))
+        if len(pkts) == 0:
+            raise EmptyPCAPError("Capture file contains 0 packets.")
+        return len(pkts)
+    except Exception as e:
+        if isinstance(e, EmptyPCAPError):
+            raise e
+        raise CorruptPCAPError(f"Failed to parse capture header: {str(e)}")

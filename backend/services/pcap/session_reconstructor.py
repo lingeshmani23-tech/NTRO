@@ -121,7 +121,7 @@ def reconstruct_sessions(packets: List[Dict[str, Any]]) -> Tuple[List[Normalized
                 has_tls = True
                 ver_raw = pkt.get("tls.handshake.version")
                 evidence_list.append(
-                    EvidenceItem(packet_number=pkt_num, field="tls.handshake.version", value=ver_raw)
+                    EvidenceItem(packet_number=pkt_num, field="tls.handshake.version", observed_value=ver_raw)
                 )
                 if ver_raw in ("0x0301", "TLS 1.0"):
                     tls_ver = "TLS 1.0"
@@ -137,7 +137,7 @@ def reconstruct_sessions(packets: List[Dict[str, Any]]) -> Tuple[List[Normalized
                 cipher_hex = pkt.get("tls.handshake.ciphersuite")
                 evidence_list.append(
                     EvidenceItem(
-                        packet_number=pkt_num, field="tls.handshake.ciphersuite", value=cipher_hex
+                        packet_number=pkt_num, field="tls.handshake.ciphersuite", observed_value=cipher_hex
                     )
                 )
 
@@ -162,12 +162,12 @@ def reconstruct_sessions(packets: List[Dict[str, Any]]) -> Tuple[List[Normalized
             if pkt.get("x509af.notBefore"):
                 not_before = pkt.get("x509af.notBefore")
                 evidence_list.append(
-                    EvidenceItem(packet_number=pkt_num, field="x509af.notBefore", value=not_before)
+                    EvidenceItem(packet_number=pkt_num, field="x509af.notBefore", observed_value=not_before)
                 )
             if pkt.get("x509af.notAfter"):
                 not_after = pkt.get("x509af.notAfter")
                 evidence_list.append(
-                    EvidenceItem(packet_number=pkt_num, field="x509af.notAfter", value=not_after)
+                    EvidenceItem(packet_number=pkt_num, field="x509af.notAfter", observed_value=not_after)
                 )
             if pkt.get("x509af.algorithm.id"):
                 sig_alg = pkt.get("x509af.algorithm.id")
@@ -197,8 +197,8 @@ def reconstruct_sessions(packets: List[Dict[str, Any]]) -> Tuple[List[Normalized
                 issuer_cn=issuer_cn,
                 not_before=not_before,
                 not_after=not_after,
-                expired=None,
-                hostname_valid=None,
+                expired=False,
+                hostname_mismatch=False,
                 key_size=key_size,
                 signature_algorithm=sig_alg,
             )

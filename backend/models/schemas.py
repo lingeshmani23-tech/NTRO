@@ -1,5 +1,5 @@
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, AliasChoices
 
 
 class EvidenceItem(BaseModel):
@@ -26,9 +26,9 @@ class CertificateInfo(BaseModel):
     key_size: Optional[int] = None
     signature_algorithm: Optional[str] = None
     san_domains: List[str] = Field(default_factory=list)
-    expired: bool = False
-    validity_issue: bool = False
-    hostname_mismatch: bool = False
+    expired: Optional[bool] = False
+    validity_issue: Optional[bool] = False
+    hostname_mismatch: Optional[bool] = False
 
 
 class StartTLSSummary(BaseModel):
@@ -47,21 +47,26 @@ class AuthenticationSummary(BaseModel):
 
 class NormalizedSession(BaseModel):
     session_id: str
-    stream_id: int
-    protocol: str = Field(description="SMTP, IMAP, or POP3")
-    source_ip: str
-    destination_ip: str
-    source_port: int
-    destination_port: int
+    stream_id: int = Field(default=0, validation_alias=AliasChoices('stream_id', 'tcp_stream'))
+    protocol: str = Field(default="SMTP", description="SMTP, IMAP, or POP3")
+    source_ip: str = Field(default="0.0.0.0", validation_alias=AliasChoices('source_ip', 'source'))
+    destination_ip: str = Field(default="0.0.0.0", validation_alias=AliasChoices('destination_ip', 'destination'))
+    source_port: int = Field(default=0, validation_alias=AliasChoices('source_port', 'src_port'))
+    destination_port: int = Field(default=0, validation_alias=AliasChoices('destination_port', 'port'))
     encryption: bool = False
     tls_version: Optional[str] = None
     cipher_suite: Optional[str] = None
+    cipher_hex: Optional[str] = None
     certificate: Optional[CertificateInfo] = None
     starttls: Optional[StartTLSSummary] = None
-    auth_summary: Optional[AuthenticationSummary] = None
+    auth_summary: Optional[AuthenticationSummary] = Field(default=None, validation_alias=AliasChoices('auth_summary', 'authentication'))
     evidence: List[EvidenceItem] = Field(default_factory=list)
     first_packet: int = 1
     last_packet: int = 1
+    packet_count: int = 0
+    destination_host: Optional[str] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
 
 
 class FindingEvidence(BaseModel):

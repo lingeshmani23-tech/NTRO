@@ -59,7 +59,7 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onAnalysisStarted }) => 
       onAnalysisStarted(res.analysis_id);
       navigate(`/progress/${res.analysis_id}`);
     } catch (err: any) {
-      setError('Failed to load demo capture.');
+      setError(err?.message || 'Failed to load demo capture.');
     } finally {
       setLoading(false);
     }

@@ -36,7 +36,7 @@ from backend.services.reports.pdf_report import generate_pdf_report
 from backend.services.database.db import save_analysis, get_analysis
 from backend.services.demo.dataset import generate_demo_analysis_result
 
-router = APIRouter(prefix="/api")
+router = APIRouter()
 
 # In-memory status store for progress tracking
 analysis_status_store: Dict[str, Dict[str, Any]] = {}
@@ -97,7 +97,7 @@ def process_pcap_pipeline(analysis_id: str, filepath: str, file_name: str, file_
         now_str = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         update_stage(analysis_id, "validate", "completed", "File validated")
 
-        # 1. TShark parsing
+        # 1. Packet parsing
         update_stage(analysis_id, "tshark_parse", "in_progress", "Extracting packets via TShark...")
         packets = parse_pcap_with_tshark(filepath)
         update_stage(analysis_id, "tshark_parse", "completed", f"{len(packets)} packets extracted")
@@ -169,6 +169,18 @@ async def analyze_pcap(
     ext = Path(file.filename).suffix.lower()
     if ext not in (".pcap", ".pcapng"):
         raise HTTPException(status_code=400, detail=f"Unsupported file extension '{ext}'. Must be .pcap or .pcapng")
+
+    tshark_info = detect_tshark()
+    if not tshark_info["available"]:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "error",
+                "stage": "pcap_parsing",
+                "error_code": "TSHARK_NOT_FOUND",
+                "message": tshark_info.get("error") or "TShark is not installed or could not be executed.",
+            },
+        )
 
     temp_dir = Path("/tmp") if os.getenv("VERCEL") else Path("scratch")
     temp_dir.mkdir(exist_ok=True)
