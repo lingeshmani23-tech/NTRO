@@ -27,12 +27,18 @@ export function getApiBaseUrl(): string {
   if (envUrl && typeof envUrl === 'string' && envUrl.trim() !== '') {
     return envUrl.trim().replace(/\/+$/, '');
   }
-  return '/api';
+  // In development, default to local FastAPI server
+  if (import.meta.env.DEV) {
+    return 'http://localhost:8000';
+  }
+  // In production, return empty or relative base if set, else fallback to origin
+  return window.location.origin;
 }
 
 export function buildUrl(endpoint: string): string {
   const base = getApiBaseUrl();
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+
   if (base.endsWith('/api') && cleanEndpoint.startsWith('/api/')) {
     return `${base}${cleanEndpoint.substring(4)}`;
   }
