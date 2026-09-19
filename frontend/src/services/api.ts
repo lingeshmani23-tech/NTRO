@@ -6,8 +6,6 @@ import type {
   Finding,
 } from '../types/api';
 
-const API_BASE = '/api';
-
 export class ApiError extends Error {
   status: number;
   code: string;
@@ -22,6 +20,23 @@ export class ApiError extends Error {
     this.stage = stage;
     this.raw = raw;
   }
+}
+
+export function getApiBaseUrl(): string {
+  const envUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL;
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim() !== '') {
+    return envUrl.trim().replace(/\/+$/, '');
+  }
+  return '/api';
+}
+
+export function buildUrl(endpoint: string): string {
+  const base = getApiBaseUrl();
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  if (base.endsWith('/api') && cleanEndpoint.startsWith('/api/')) {
+    return `${base}${cleanEndpoint.substring(4)}`;
+  }
+  return `${base}${cleanEndpoint}`;
 }
 
 async function handleResponse<T>(res: Response): Promise<T> {
@@ -62,7 +77,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
   if (res.status === 404) {
     throw new ApiError(
-      'Analysis API endpoint not found (404). Check that the SecureMailScope backend is running and /analyze is available.',
+      `Analysis API endpoint not found (404). Check that the SecureMailScope backend is running and VITE_API_BASE_URL is configured.`,
       404,
       'ENDPOINT_NOT_FOUND',
       undefined,
@@ -89,7 +104,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
   }
 
   throw new ApiError(
-    `Analysis service returned an unexpected response (Status ${res.status}). Check that the SecureMailScope backend is running and /analyze is available.`,
+    `Analysis service returned an unexpected response (Status ${res.status}). Check backend status.`,
     res.status,
     'UNEXPECTED_RESPONSE',
     undefined,
@@ -107,7 +122,7 @@ async function safeFetch<T>(url: string, init?: RequestInit): Promise<T> {
     }
     console.error('Fetch error:', err);
     throw new ApiError(
-      'Analysis service is unreachable. Check that the SecureMailScope backend is running and /analyze is available.',
+      `Analysis backend is unavailable. Ensure the SecureMailScope backend server is running and accessible at ${getApiBaseUrl()}.`,
       0,
       'SERVICE_UNAVAILABLE'
     );
@@ -115,11 +130,11 @@ async function safeFetch<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export async function fetchHealth(): Promise<HealthResponse> {
-  return safeFetch<HealthResponse>(`${API_BASE}/health`);
+  return safeFetch<HealthResponse>(buildUrl('/health'));
 }
 
 export async function triggerDemoAnalysis(): Promise<{ analysis_id: string }> {
-  return safeFetch<{ analysis_id: string }>(`${API_BASE}/demo`, {
+  return safeFetch<{ analysis_id: string }>(buildUrl('/demo'), {
     method: 'POST',
   });
 }
@@ -128,31 +143,31 @@ export async function uploadPcapFile(file: File): Promise<{ analysis_id: string 
   const formData = new FormData();
   formData.append('file', file);
 
-  return safeFetch<{ analysis_id: string }>(`${API_BASE}/analyze`, {
+  return safeFetch<{ analysis_id: string }>(buildUrl('/analyze'), {
     method: 'POST',
     body: formData,
   });
 }
 
 export async function fetchAnalysisStatus(id: string): Promise<StatusResponse> {
-  return safeFetch<StatusResponse>(`${API_BASE}/analyze/${id}/status`);
+  return safeFetch<StatusResponse>(buildUrl(`/analyze/${id}/status`));
 }
 
 export async function fetchAnalysisResult(id: string): Promise<AnalysisResult> {
-  return safeFetch<AnalysisResult>(`${API_BASE}/analyze/${id}`);
+  return safeFetch<AnalysisResult>(buildUrl(`/analyze/${id}`));
 }
 
 export async function fetchAnalysisSessions(id: string): Promise<NormalizedSession[]> {
-  return safeFetch<NormalizedSession[]>(`${API_BASE}/analyze/${id}/sessions`);
+  return safeFetch<NormalizedSession[]>(buildUrl(`/analyze/${id}/sessions`));
 }
 
 export async function fetchAnalysisFindings(id: string, severity?: string): Promise<Finding[]> {
-  const url = severity
-    ? `${API_BASE}/analyze/${id}/findings?severity=${encodeURIComponent(severity)}`
-    : `${API_BASE}/analyze/${id}/findings`;
-  return safeFetch<Finding[]>(url);
+  const endpoint = severity
+    ? `/analyze/${id}/findings?severity=${encodeURIComponent(severity)}`
+    : `/analyze/${id}/findings`;
+  return safeFetch<Finding[]>(buildUrl(endpoint));
 }
 
 export function getReportDownloadUrl(id: string, format: 'pdf' | 'json'): string {
-  return `${API_BASE}/analyze/${id}/report/${format}`;
+  return buildUrl(`/analyze/${id}/report/${format}`);
 }
