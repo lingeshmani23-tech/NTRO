@@ -159,6 +159,7 @@ def process_pcap_pipeline(analysis_id: str, filepath: str, file_name: str, file_
 
 
 @router.post("/analyze")
+@router.post("/analysis")
 async def analyze_pcap(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
@@ -225,7 +226,8 @@ def trigger_demo_analysis():
     return {"analysis_id": analysis_id}
 
 
-@router.get("/analyze/{analysis_id}/status", response_model=StatusResponse)
+@router.get("/analyze/{analysis_id}/status")
+@router.get("/analysis/{analysis_id}/status")
 def get_analysis_status(analysis_id: str):
     if analysis_id in analysis_status_store:
         entry = analysis_status_store[analysis_id]
@@ -251,7 +253,8 @@ def get_analysis_status(analysis_id: str):
     raise HTTPException(status_code=404, detail="Analysis ID not found")
 
 
-@router.get("/analyze/{analysis_id}", response_model=AnalysisResult)
+@router.get("/analyze/{analysis_id}")
+@router.get("/analysis/{analysis_id}")
 def get_analysis_result(analysis_id: str):
     res = get_analysis(analysis_id)
     if not res:
@@ -259,7 +262,8 @@ def get_analysis_result(analysis_id: str):
     return res
 
 
-@router.get("/analyze/{analysis_id}/sessions", response_model=List[NormalizedSession])
+@router.get("/analyze/{analysis_id}/sessions")
+@router.get("/analysis/{analysis_id}/sessions")
 def get_analysis_sessions(analysis_id: str):
     res = get_analysis(analysis_id)
     if not res:
@@ -267,7 +271,8 @@ def get_analysis_sessions(analysis_id: str):
     return res.sessions
 
 
-@router.get("/analyze/{analysis_id}/findings", response_model=List[Finding])
+@router.get("/analyze/{analysis_id}/findings")
+@router.get("/analysis/{analysis_id}/findings")
 def get_analysis_findings(analysis_id: str, severity: Optional[str] = Query(default=None)):
     res = get_analysis(analysis_id)
     if not res:
@@ -279,6 +284,7 @@ def get_analysis_findings(analysis_id: str, severity: Optional[str] = Query(defa
 
 
 @router.get("/analyze/{analysis_id}/report/{format}")
+@router.get("/analysis/{analysis_id}/report/{format}")
 def download_report(analysis_id: str, format: str):
     res = get_analysis(analysis_id)
     if not res:
