@@ -1,62 +1,54 @@
 {
-  "services": {
-    "frontend": {
-      "root": "frontend/",
-      "framework": "vite"
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python"
     },
-    "backend": {
-      "root": "backend/",
-      "entrypoint": "main:app"
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
     }
-  },
-  "rewrites": [
+  ],
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": {
-        "service": "backend"
-      }
+      "src": "/api/(.*)",
+      "dest": "api/index.py"
     },
     {
-      "source": "/analyze/(.*)",
-      "destination": {
-        "service": "backend"
-      }
+      "src": "/api",
+      "dest": "api/index.py"
     },
     {
-      "source": "/analyze",
-      "destination": {
-        "service": "backend"
-      }
+      "src": "/analyze/(.*)",
+      "dest": "api/index.py"
     },
     {
-      "source": "/analysis/(.*)",
-      "destination": {
-        "service": "backend"
-      }
+      "src": "/analyze",
+      "dest": "api/index.py"
     },
     {
-      "source": "/analysis",
-      "destination": {
-        "service": "backend"
-      }
+      "src": "/analysis/(.*)",
+      "dest": "api/index.py"
     },
     {
-      "source": "/health",
-      "destination": {
-        "service": "backend"
-      }
+      "src": "/analysis",
+      "dest": "api/index.py"
     },
     {
-      "source": "/demo",
-      "destination": {
-        "service": "backend"
-      }
+      "src": "/health",
+      "dest": "api/index.py"
     },
     {
-      "source": "/(.*)",
-      "destination": {
-        "service": "frontend"
-      }
+      "src": "/demo",
+      "dest": "api/index.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "frontend/$1"
     }
   ]
 }
